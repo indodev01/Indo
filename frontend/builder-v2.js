@@ -1,7 +1,4 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getDatabase, ref, get, update } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './auth/firebase-config.js';
+import { supabase } from './auth/supabase-config.js';
 
 const title = document.getElementById('builderTitle');
 const status = document.getElementById('projectStatus');
@@ -16,8 +13,6 @@ const selectionLabel = document.getElementById('selectionLabel');
 const params = new URLSearchParams(window.location.search);
 const projectId = params.get('projectId');
 
-let authUser = null;
-let projectRef = null;
 let components = [];
 let selectedIndex = -1;
 let isReady = false;
@@ -27,7 +22,10 @@ function showStatus(text) {
 }
 
 function makeComponent(type) {
-  const base = { id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type };
+  const base = {
+    id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type
+  };
   if (type === 'Heading') return { ...base, text: 'Your Heading', size: '28', align: 'left' };
   if (type === 'Text') return { ...base, text: 'Add your text here.' };
   if (type === 'Button') return { ...base, label: 'Click Me', link: '' };
@@ -36,9 +34,8 @@ function makeComponent(type) {
 
 function normalizeComponent(value, index) {
   if (typeof value === 'string') {
-    const type = value;
-    const component = makeComponent(type);
-    component.id = `${type.toLowerCase()}-${index + 1}-${Date.now()}`;
+    const component = makeComponent(value);
+    component.id = `${value.toLowerCase()}-${index + 1}-${Date.now()}`;
     return component;
   }
   return value;
@@ -154,7 +151,7 @@ function renderInspector() {
 
   const helper = document.createElement('p');
   helper.className = 'helper';
-  helper.textContent = 'Changes are kept in this project and saved to Firebase when you press Save.';
+  helper.textContent = 'Changes stay in this project and are saved to Supabase when you press Save.';
   inspectorContent.appendChild(helper);
 
   const setValue = (key, value) => {
@@ -185,7 +182,7 @@ function renderInspector() {
     inspectorContent.appendChild(inputField('Alt text', component.alt, (value) => setValue('alt', value)));
     const helperUrl = document.createElement('p');
     helperUrl.className = 'helper';
-    helperUrl.textContent = 'Use a public image URL for now. Image upload can be added later.';
+    helperUrl.textContent = 'Use a public image URL for now. Supabase Storage can be added later.';
     inspectorContent.appendChild(helperUrl);
   }
 
@@ -209,81 +206,87 @@ function selectComponent(index) {
   renderInspector();
 }
 
-if (!isFirebaseConfigured()) {
-  showStatus('Firebase not configured');
+async function loadProject() {
+  if (!projectId) {
+    showStatus('Missing project');
+    buttons.forEach((button) => { button.disabled = true; });
+    saveButton.disabled = true;
+    return;
+  }
+
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!userData.user) {
+    window.location.replace('auth/sign-in.html');
+    return;
+  }
+
+  const { data: project, error } = await supabase
+    .from('projects')
+    .select('id,name,app_definition')
+    .eq('id', projectId)
+    .single();
+
+  if (error) throw error;
+  if (!project) throw new Error('Project not found');
+
+  title.textContent = `${project.name || 'Untitled App'} Builder`;
+  components = normalizeComponents(project.app_definition?.componentsList || []);
+  renderCanvas();
+  renderInspector();
+  showStatus('Project loaded');
+  isReady = true;
+}
+
+loadProject().catch((error) => {
+  console.error(error);
+  showStatus(`Load failed: ${error.code || error.message || 'error'}`);
   buttons.forEach((button) => { button.disabled = true; });
   saveButton.disabled = true;
-} else {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const database = getDatabase(app, realtimeDatabaseUrl);
+});
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.replace('auth/sign-in.html');
-      return;
-    }
-
-    if (!projectId) {
-      showStatus('Missing project');
-      buttons.forEach((button) => { button.disabled = true; });
-      saveButton.disabled = true;
-      return;
-    }
-
-    authUser = user;
-    projectRef = ref(database, `users/${user.uid}/projects/${projectId}`);
-
-    try {
-      const snapshot = await get(projectRef);
-      if (!snapshot.exists()) {
-        showStatus('Project not found');
-        buttons.forEach((button) => { button.disabled = true; });
-        saveButton.disabled = true;
-        return;
-      }
-
-      const project = snapshot.val();
-      title.textContent = `${project.info?.name || 'Untitled App'} Builder`;
-      components = normalizeComponents(project.appDefinition?.componentsList || []);
-      renderCanvas();
-      renderInspector();
-      showStatus('Project loaded');
-      isReady = true;
-    } catch (error) {
-      showStatus(`Load failed: ${error.code || 'error'}`);
-    }
+buttons.forEach((button) => {
+  button.addEventListener('click', () => {
+    if (!isReady) return;
+    components.push(makeComponent(button.dataset.component));
+    selectedIndex = components.length - 1;
+    renderCanvas();
+    renderInspector();
+    showStatus(`${button.dataset.component} added`);
   });
+});
 
-  buttons.forEach((button) => {
-    button.addEventListener('click', () => {
-      if (!isReady) return;
-      components.push(makeComponent(button.dataset.component));
-      selectedIndex = components.length - 1;
-      renderCanvas();
-      renderInspector();
-      showStatus(`${button.dataset.component} added`);
-    });
-  });
+saveButton.addEventListener('click', async () => {
+  if (!isReady || !projectId) return;
 
-  saveButton.addEventListener('click', async () => {
-    if (!authUser || !projectRef || !isReady) return;
-    saveButton.disabled = true;
-    showStatus('Saving...');
-    try {
-      await update(projectRef, {
-        'appDefinition/componentsList': components,
-        'info/updatedAt': Date.now()
-      });
-      showStatus('Saved to Firebase');
-    } catch (error) {
-      showStatus(`Save failed: ${error.code || 'error'}`);
-    } finally {
-      saveButton.disabled = false;
-    }
-  });
+  saveButton.disabled = true;
+  showStatus('Saving...');
 
-  previewButton.addEventListener('click', () => {
-    window.location.href = `preview.html?projectId=${encodeURIComponent(projectId || '')}`;
-  });
-}
+  try {
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        app_definition: {
+          pages: {},
+          components: {},
+          componentsList: components,
+          workflows: {},
+          settings: {}
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', projectId);
+
+    if (error) throw error;
+    showStatus('Saved to Supabase');
+  } catch (error) {
+    console.error(error);
+    showStatus(`Save failed: ${error.code || error.message || 'error'}`);
+  } finally {
+    saveButton.disabled = false;
+  }
+});
+
+previewButton.addEventListener('click', () => {
+  window.location.href = `preview.html?projectId=${encodeURIComponent(projectId || '')}`;
+});
