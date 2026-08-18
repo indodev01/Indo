@@ -63,16 +63,19 @@ button { cursor: pointer; }
 .canvas-shell { min-height: calc(100vh - 120px); position: relative; padding: 34px 25px 25px; border: 1px solid var(--border); border-radius: 16px; background: radial-gradient(circle at 50% 0%, rgba(138,69,255,.06), transparent 28%), linear-gradient(180deg,#0d1422,#090e18); overflow: auto; }
 .canvas-ruler { position: absolute; left: 25px; right: 25px; top: 8px; display: flex; justify-content: space-between; color: #49556b; font-size: 8px; }
 
-/* The center is a real app preview, not a stack of editor cards. */
 .canvas { min-height: calc(100vh - 190px); margin: 0 auto; padding: 24px 18px 26px; border: 1px solid rgba(255,255,255,.08); border-radius: 26px; background: #090d14; box-shadow: 0 28px 70px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.03); transition: max-width .2s ease, border-radius .2s ease; overflow: auto; color: #f7f8ff; }
 .canvas-desktop { max-width: 760px; }
 .canvas-mobile { max-width: 390px; border-radius: 30px; padding: 18px 14px 22px; box-shadow: 0 28px 80px rgba(0,0,0,.5), 0 0 0 7px rgba(255,255,255,.025); }
 .empty { min-height: 320px; display: grid; place-items: center; align-content: center; text-align: center; color: #6f7b90; }
-.empty-icon { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 10px; border: 1px solid rgba(181,76,255,.24); border-radius: 16px; background: rgba(138,69,255,.1); color: #cdb6ff; font-size: 20px; }
-.empty h2 { margin: 0 0 6px; color: #dde2ed; font-size: 17px; }
-.empty p { max-width: 280px; margin: 0; font-size: 11px; line-height: 1.6; }
+.empty-icon { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 10px; border: 1px solid rgba(181,76,255,.24); border-radius: 16px; background: rgba(138,69,255,.1); color: #cdb6ff; font-size: 20px; box-shadow: 0 0 32px rgba(138,69,255,.08); }
+.empty-kicker { margin-bottom: 6px; color: #9a6bff; font-size: 8px; font-weight: 900; letter-spacing: 1.35px; }
+.empty h2 { margin: 0 0 7px; color: #eef1f8; font-size: 20px; letter-spacing: -.4px; }
+.empty p { max-width: 390px; margin: 0 auto; font-size: 11px; line-height: 1.65; color: #778399; }
+.empty small { margin-top: 14px; color: #4f5b70; font-size: 9px; }
+.quick-adds { width: min(460px,100%); display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; margin-top: 18px; }
+.quick-add { min-height: 34px; padding: 0 9px; border: 1px solid rgba(181,76,255,.16); border-radius: 9px; color: #bca5e8; background: rgba(138,69,255,.055); font-size: 10px; font-weight: 800; transition: .16s ease; }
+.quick-add:hover { color: #fff; border-color: rgba(181,76,255,.42); background: rgba(138,69,255,.13); transform: translateY(-1px); }
 
-/* Components look like the real product UI. The purple outline is only the editor selection layer. */
 .canvas-item { position: relative; margin: 0 0 14px; padding: 0; border: 1px solid transparent; border-radius: 14px; background: transparent; cursor: pointer; }
 .canvas-item:hover { border-color: rgba(181,76,255,.34); }
 .canvas-item.selected { border-color: rgba(154,103,255,.95); box-shadow: 0 0 0 2px rgba(138,69,255,.12); }
@@ -114,5 +117,5 @@ button { cursor: pointer; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 15px; }
 
 @media (max-width: 1100px) { .workspace { grid-template-columns: 190px minmax(0,1fr); } .inspector { display: none; } }
-@media (max-width: 720px) { .topbar { grid-template-columns: 1fr auto; padding-inline: 11px; } .topbar-center { display: none; } .brand img { width: 92px; } .workspace { display: block; } .sidebar { border-right: 0; border-bottom: 1px solid var(--border); } .component-list { grid-template-columns: repeat(4,minmax(0,1fr)); } .canvas-area { padding: 12px; } .canvas-shell { min-height: calc(100vh - 215px); padding-inline: 12px; } .canvas { min-height: 60vh; padding: 17px; } }
+@media (max-width: 720px) { .topbar { grid-template-columns: 1fr auto; padding-inline: 11px; } .topbar-center { display: none; } .brand img { width: 92px; } .workspace { display: block; } .sidebar { border-right: 0; border-bottom: 1px solid var(--border); } .component-list { grid-template-columns: repeat(4,minmax(0,1fr)); } .canvas-area { padding: 12px; } .canvas-shell { min-height: calc(100vh - 215px); padding-inline: 12px; } .canvas { min-height: 60vh; padding: 17px; } .quick-adds { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 470px) { .studio-label { display: none; } .topbar-actions .secondary { display: none; } .component-list { grid-template-columns: 1fr 1fr 1fr; } .canvas-toolbar { align-items: flex-start; flex-direction: column; } .toolbar-controls { width: 100%; justify-content: space-between; } }
