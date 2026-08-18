@@ -3,25 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Preview - Indo Dev</title>
-  <link rel="stylesheet" href="preview.css?v=6">
+  <meta name="theme-color" content="#070b17">
+  <title>Preview — Indo</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#060914;color:#f7f8ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}.page{min-height:100vh;padding:18px 24px;background:radial-gradient(circle at 80% 0%,rgba(138,69,255,.13),transparent 25%),#060914}.page-header{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}.page-header-actions{display:flex;gap:8px}.back-link,.home-link{min-height:34px;padding:0 11px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);color:#c1c9d7;cursor:pointer;font-size:10px}.page-header h1{margin:0;font-size:22px}.page-header p{margin:4px 0 0;color:#7f8a9e;font-size:9px}.preview-frame{min-height:calc(100vh - 110px);display:grid;place-items:center;padding:30px}.preview-canvas{width:min(100%,430px);min-height:690px;padding:14px;border:5px solid #272e3b;border-radius:34px;background:linear-gradient(180deg,#05070d,#111827);box-shadow:0 28px 70px rgba(0,0,0,.45);overflow:auto}.preview-canvas:empty:before{content:'Live app preview';display:grid;place-items:center;min-height:650px;color:#6d788c;font-size:11px}.preview-canvas>*{color:inherit}@media(max-width:640px){.page{padding:12px}.page-header{align-items:flex-start;flex-direction:column}.preview-frame{padding:16px 4px}.preview-canvas{width:100%;min-height:600px}}
+  </style>
 </head>
 <body>
-  <main class="page">
-    <header class="page-header">
-      <div class="page-header-actions">
-        <button id="backButton" class="back-link" type="button">← Back to Builder</button>
-        <button id="homeButton" class="home-link" type="button">Home</button>
-      </div>
-      <h1>App Preview</h1>
-      <p id="previewInfo">Loading your app preview...</p>
-    </header>
-
-    <section class="preview-frame" aria-label="App preview">
-      <div id="previewCanvas" class="preview-canvas"></div>
-    </section>
-  </main>
-
-  <script type="module" src="preview.js?v=6"></script>
+  <main class="page"><header class="page-header"><div class="page-header-actions"><button id="backButton" class="back-link" type="button">← Back to Builder</button><button id="homeButton" class="home-link" type="button">Home</button></div><div><h1>Live App Preview</h1><p id="previewInfo">Loading your app preview...</p></div></header><section class="preview-frame" aria-label="App preview"><div id="previewCanvas" class="preview-canvas"></div></section></main>
+  <script type="module" src="preview.js?v=7"></script>
 </body>
 </html>
