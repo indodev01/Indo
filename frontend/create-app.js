@@ -1,49 +1,50 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import {
-  getAuth,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import {
-  getDatabase,
-  ref,
-  push,
-  set
-} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-import {
-  firebaseConfig,
-  realtimeDatabaseUrl,
-  isFirebaseConfigured
-} from './auth/firebase-config.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
+import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
+import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './auth/firebase-config.js';
 
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
 const message = document.getElementById('message');
 const appNameInput = document.getElementById('appName');
 const appDescriptionInput = document.getElementById('appDescription');
-const choiceInputs = document.querySelectorAll('input[name="startMode"]');
+const startModeInput = document.getElementById('startMode');
+const selectedModeLabel = document.getElementById('selectedModeLabel');
+const optionButtons = document.querySelectorAll('.start-option');
 
 function showMessage(text) {
   message.textContent = text;
 }
 
-function setChoiceState(selectedInput) {
-  document.querySelectorAll('.choice').forEach((choice) => {
-    choice.classList.remove('active');
+function selectStartMode(mode) {
+  startModeInput.value = mode;
+
+  optionButtons.forEach((buttonElement) => {
+    const isSelected = buttonElement.dataset.mode === mode;
+    buttonElement.classList.toggle('selected', isSelected);
+    buttonElement.setAttribute('aria-checked', String(isSelected));
   });
-  selectedInput.closest('.choice')?.classList.add('active');
+
+  selectedModeLabel.textContent = mode === 'template'
+    ? 'Template selected'
+    : 'Blank App selected';
 }
 
-choiceInputs.forEach((input) => {
-  input.addEventListener('change', () => setChoiceState(input));
+optionButtons.forEach((optionButton) => {
+  optionButton.addEventListener('click', () => {
+    selectStartMode(optionButton.dataset.mode || 'blank');
+  });
 });
+
+selectStartMode('blank');
 
 if (!isFirebaseConfigured()) {
   button.disabled = true;
   showMessage('Firebase is not configured.');
 } else {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const database = getDatabase(app, realtimeDatabaseUrl);
+  const firebaseApp = initializeApp(firebaseConfig);
+  const auth = getAuth(firebaseApp);
+  const database = getDatabase(firebaseApp, realtimeDatabaseUrl);
   let currentUser = null;
   let authReady = false;
 
@@ -74,8 +75,7 @@ if (!isFirebaseConfigured()) {
 
     const name = appNameInput.value.trim();
     const description = appDescriptionInput.value.trim();
-    const selected = document.querySelector('input[name="startMode"]:checked');
-    const startMode = selected ? selected.value : 'blank';
+    const startMode = startModeInput.value === 'template' ? 'template' : 'blank';
 
     if (!name) {
       showMessage('Please enter an app name.');
@@ -84,7 +84,7 @@ if (!isFirebaseConfigured()) {
     }
 
     button.disabled = true;
-    showMessage('Creating your app...');
+    showMessage(startMode === 'template' ? 'Creating your project...' : 'Creating your blank app...');
 
     try {
       const now = Date.now();
@@ -120,8 +120,13 @@ if (!isFirebaseConfigured()) {
         }
       });
 
-      showMessage('App created successfully. Opening the builder...');
-      window.location.replace(`builder.html?projectId=${encodeURIComponent(projectId)}`);
+      if (startMode === 'template') {
+        showMessage('Project created. Opening templates...');
+        window.location.replace(`templates.html?projectId=${encodeURIComponent(projectId)}`);
+      } else {
+        showMessage('Blank app created. Opening the builder...');
+        window.location.replace(`builder.html?projectId=${encodeURIComponent(projectId)}`);
+      }
     } catch (error) {
       console.error(error);
       showMessage(`Could not create app (${error.code || 'unknown-error'}). Please try again.`);
