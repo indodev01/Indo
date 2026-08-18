@@ -60,23 +60,32 @@ button { cursor: pointer; }
 .device-button { min-height: 29px; padding: 0 9px; border: 0; background: transparent; color: #707b8f; }
 .device-button.active { color: #fff; background: rgba(138,69,255,.22); }
 .toolbar-icon { width: 33px; height: 33px; padding: 0; color: #858fa4; border: 1px solid var(--border); background: rgba(255,255,255,.025); }
-.canvas-shell { min-height: calc(100vh - 120px); position: relative; padding: 34px 25px 25px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(180deg,#0d1422,#0a0f1b); overflow: auto; }
+.canvas-shell { min-height: calc(100vh - 120px); position: relative; padding: 34px 25px 25px; border: 1px solid var(--border); border-radius: 16px; background: radial-gradient(circle at 50% 0%, rgba(138,69,255,.06), transparent 28%), linear-gradient(180deg,#0d1422,#090e18); overflow: auto; }
 .canvas-ruler { position: absolute; left: 25px; right: 25px; top: 8px; display: flex; justify-content: space-between; color: #49556b; font-size: 8px; }
-.canvas { min-height: calc(100vh - 190px); margin: 0 auto; padding: 28px; border: 1px dashed rgba(255,255,255,.1); border-radius: 14px; background: #111827; box-shadow: 0 20px 50px rgba(0,0,0,.2); transition: max-width .2s ease; }
-.canvas-desktop { max-width: 100%; }
-.canvas-mobile { max-width: 390px; }
+
+/* The center is a real app preview, not a stack of editor cards. */
+.canvas { min-height: calc(100vh - 190px); margin: 0 auto; padding: 24px 18px 26px; border: 1px solid rgba(255,255,255,.08); border-radius: 26px; background: #090d14; box-shadow: 0 28px 70px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.03); transition: max-width .2s ease, border-radius .2s ease; overflow: auto; color: #f7f8ff; }
+.canvas-desktop { max-width: 760px; }
+.canvas-mobile { max-width: 390px; border-radius: 30px; padding: 18px 14px 22px; box-shadow: 0 28px 80px rgba(0,0,0,.5), 0 0 0 7px rgba(255,255,255,.025); }
 .empty { min-height: 320px; display: grid; place-items: center; align-content: center; text-align: center; color: #6f7b90; }
 .empty-icon { width: 52px; height: 52px; display: grid; place-items: center; margin-bottom: 10px; border: 1px solid rgba(181,76,255,.24); border-radius: 16px; background: rgba(138,69,255,.1); color: #cdb6ff; font-size: 20px; }
 .empty h2 { margin: 0 0 6px; color: #dde2ed; font-size: 17px; }
 .empty p { max-width: 280px; margin: 0; font-size: 11px; line-height: 1.6; }
-.canvas-item { position: relative; padding: 14px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,.08); border-radius: 11px; background: #0d1422; cursor: pointer; }
-.canvas-item:hover { border-color: rgba(181,76,255,.28); }
-.canvas-item.selected { border-color: #9a67ff; box-shadow: 0 0 0 2px rgba(138,69,255,.12); background: #101729; }
-.component-type { display: block; margin-bottom: 6px; color: #768198; font-size: 8px; text-transform: uppercase; letter-spacing: .08em; font-weight: 900; }
-.component-preview-heading { margin: 0; color: #fff; font-size: 27px; font-weight: 850; }
-.component-preview-text { margin: 0; color: #a6afc1; font-size: 13px; line-height: 1.55; }
-.component-preview-button { display: inline-flex; padding: 9px 13px; border-radius: 9px; background: linear-gradient(135deg,var(--purple),var(--purple-2)); color: #fff; font-size: 12px; font-weight: 800; }
-.component-preview-image { display: block; max-width: 100%; max-height: 220px; object-fit: contain; border-radius: 10px; background: #1a2232; }
+
+/* Components look like the real product UI. The purple outline is only the editor selection layer. */
+.canvas-item { position: relative; margin: 0 0 14px; padding: 0; border: 1px solid transparent; border-radius: 14px; background: transparent; cursor: pointer; }
+.canvas-item:hover { border-color: rgba(181,76,255,.34); }
+.canvas-item.selected { border-color: rgba(154,103,255,.95); box-shadow: 0 0 0 2px rgba(138,69,255,.12); }
+.component-type { display: none; }
+.component-preview-heading { margin: 0; padding: 3px 2px; color: #fff; font-size: 30px; font-weight: 850; letter-spacing: -.8px; }
+.component-preview-text { margin: 0; padding: 0 2px; color: #9ca8bb; font-size: 14px; line-height: 1.6; }
+.component-preview-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 13px; background: linear-gradient(135deg,#ff2456,#ff3b73); color: #fff; font-size: 13px; font-weight: 850; box-shadow: 0 10px 24px rgba(255,36,86,.22); }
+.component-preview-image { display: block; width: 100%; max-width: 100%; max-height: 320px; object-fit: cover; border-radius: 16px; background: #111827; }
+.canvas-item input { color: #eaf0fb !important; background: #101622 !important; border: 1px solid rgba(255,255,255,.08) !important; }
+.canvas-item ul, .canvas-item ol { margin: 0; padding-left: 20px; color: #d6ddea; line-height: 1.75; }
+.canvas-item nav { display: flex; align-items: center; gap: 18px; padding: 10px 2px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.canvas-item nav span { color: #aab4c6; font-size: 12px; font-weight: 700; }
+.canvas-item nav span:first-child { color: #fff; }
 
 .inspector-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .selection-label { max-width: 110px; color: #68748a; text-align: right; font-size: 9px; line-height: 1.3; }
