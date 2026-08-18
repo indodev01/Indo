@@ -1,4 +1,5 @@
 import { supabase } from './auth/supabase-config.js';
+import { makeEmptyDefinition } from './app-definition.js';
 
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
@@ -9,9 +10,7 @@ const startModeInput = document.getElementById('startMode');
 const selectedModeLabel = document.getElementById('selectedModeLabel');
 const optionButtons = document.querySelectorAll('.start-option');
 
-function showMessage(text) {
-  message.textContent = text;
-}
+function showMessage(text) { message.textContent = text; }
 
 function selectStartMode(mode) {
   const selected = mode === 'template' ? 'template' : 'blank';
@@ -24,10 +23,7 @@ function selectStartMode(mode) {
   selectedModeLabel.textContent = selected === 'template' ? 'Template selected' : 'Blank App selected';
 }
 
-optionButtons.forEach((option) => {
-  option.addEventListener('click', () => selectStartMode(option.dataset.mode));
-});
-
+optionButtons.forEach((option) => option.addEventListener('click', () => selectStartMode(option.dataset.mode)));
 selectStartMode('blank');
 
 async function loadCurrentUser() {
@@ -42,22 +38,18 @@ async function loadCurrentUser() {
 
 button.disabled = true;
 showMessage('Checking your account...');
-
-loadCurrentUser()
-  .then((user) => {
-    if (!user) return;
-    button.disabled = false;
-    showMessage('');
-    appNameInput.focus();
-  })
-  .catch((error) => {
-    console.error(error);
-    showMessage('Could not load your account. Please sign in again.');
-  });
+loadCurrentUser().then((user) => {
+  if (!user) return;
+  button.disabled = false;
+  showMessage('');
+  appNameInput.focus();
+}).catch((error) => {
+  console.error(error);
+  showMessage('Could not load your account. Please sign in again.');
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-
   const name = appNameInput.value.trim();
   const description = appDescriptionInput.value.trim();
   const startMode = startModeInput.value === 'template' ? 'template' : 'blank';
@@ -80,6 +72,11 @@ form.addEventListener('submit', async (event) => {
     }
 
     const now = new Date().toISOString();
+    const definition = makeEmptyDefinition();
+    definition.metadata.title = name;
+    definition.metadata.description = description;
+    definition.settings.status = 'draft';
+
     const { data: project, error } = await supabase
       .from('projects')
       .insert({
@@ -88,12 +85,11 @@ form.addEventListener('submit', async (event) => {
         description,
         start_mode: startMode,
         status: 'draft',
+        pages: definition.pages,
         app_definition: {
-          pages: {},
+          ...definition,
           components: {},
-          componentsList: [],
-          workflows: {},
-          settings: {}
+          componentsList: []
         },
         created_at: now,
         updated_at: now
@@ -103,11 +99,12 @@ form.addEventListener('submit', async (event) => {
 
     if (error) throw error;
 
-    await supabase.from('project_versions').insert({
+    const { error: versionError } = await supabase.from('project_versions').insert({
       project_id: project.id,
       version_name: 'v1',
-      data: { status: 'draft', createdAt: now, updatedAt: now }
+      data: definition
     });
+    if (versionError) throw versionError;
 
     if (startMode === 'template') {
       showMessage('Project created. Opening templates...');
