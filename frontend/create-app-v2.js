@@ -4,9 +4,22 @@ import { makeEmptyDefinition } from './app-definition.js';
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
 const message = document.getElementById('message');
+const choices = [...document.querySelectorAll('.choice')];
 let currentUser = null;
 
 function showMessage(text) { if (message) message.textContent = text; }
+
+function syncChoiceState() {
+  choices.forEach((choice) => {
+    const input = choice.querySelector('input');
+    choice.classList.toggle('active', !!input?.checked);
+  });
+}
+
+document.querySelectorAll('input[name="startMode"]').forEach((input) => {
+  input.addEventListener('change', syncChoiceState);
+});
+syncChoiceState();
 
 async function requireUser() {
   const { data, error } = await supabase.auth.getUser();
@@ -28,9 +41,22 @@ form.addEventListener('submit', async (event) => {
   if (!name) { showMessage('Enter an app name.'); return; }
 
   button.disabled = true;
-  showMessage('Creating your app...');
+  showMessage(startMode === 'template' ? 'Opening templates...' : 'Creating your app...');
 
   try {
+    // Template mode should not create an empty project first.
+    // The user chooses the actual template next; that flow creates the project
+    // with the selected template definition.
+    if (startMode === 'template') {
+      const params = new URLSearchParams({
+        appName: name,
+        description,
+        startMode: 'template'
+      });
+      window.location.replace(`templates.html?${params.toString()}`);
+      return;
+    }
+
     const definition = makeEmptyDefinition();
     definition.metadata.title = name;
     definition.metadata.description = description;
@@ -39,7 +65,7 @@ form.addEventListener('submit', async (event) => {
       user_id: currentUser.id,
       name,
       description,
-      start_mode: startMode,
+      start_mode: 'blank',
       status: 'draft',
       pages: definition.pages,
       app_definition: definition
