@@ -13,24 +13,24 @@
       <a class="brand" href="../landing/index.html">Indo Dev</a>
       <p class="eyebrow">Welcome back</p>
       <h1>Sign in to Indo Dev</h1>
-      <p class="helper-text">Continue building your apps and projects.</p>
+      <p class="helper-text">Use the email and password from your Indo Dev account.</p>
 
-      <form id="signInForm">
+      <form id="signInForm" novalidate>
         <label for="email">Email</label>
-        <input id="email" type="email" placeholder="you@example.com" required>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required>
 
         <label for="password">Password</label>
-        <input id="password" type="password" placeholder="Your password" required>
+        <input id="password" type="password" placeholder="Your password" autocomplete="current-password" required>
 
-        <button class="primary-button" type="submit">Sign In</button>
+        <button id="signInButton" class="primary-button" type="submit">Sign In</button>
       </form>
 
       <p class="utility-link"><a href="forgot-password.html">Forgot password?</a></p>
-      <p id="formMessage" class="message"></p>
+      <p id="formMessage" class="message" role="status"></p>
       <p class="switch-link">New to Indo Dev? <a href="sign-up.html">Create an account</a></p>
     </section>
   </main>
 
-  <script src="sign-in.js"></script>
+  <script type="module" src="sign-in.js"></script>
 </body>
 </html>
