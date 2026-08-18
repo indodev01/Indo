@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Builder - Indo Dev</title>
-  <link rel="stylesheet" href="builder-v2.css?v=supabase1">
+  <link rel="stylesheet" href="builder-v2.css?v=pages1">
 </head>
 <body>
   <main class="builder-page">
     <header class="topbar">
       <a class="brand" href="dashboard/index.html" aria-label="Indo Dev home">
-        <img src="landing/official-logo.svg?v=supabase1" alt="Indo Dev">
+        <img src="landing/official-logo.svg?v=pages1" alt="Indo Dev">
       </a>
       <div class="topbar-actions">
         <button id="saveButton" class="secondary" type="button">Save</button>
@@ -20,12 +20,21 @@
 
     <section class="workspace">
       <aside class="sidebar">
-        <h2>Components</h2>
-        <div class="component-list">
-          <button class="component-button" data-component="Heading" type="button">Heading</button>
-          <button class="component-button" data-component="Text" type="button">Text</button>
-          <button class="component-button" data-component="Button" type="button">Button</button>
-          <button class="component-button" data-component="Image" type="button">Image</button>
+        <div class="sidebar-section">
+          <div class="sidebar-heading-row">
+            <h2>Pages</h2>
+            <button id="addPageButton" class="mini-button" type="button">+</button>
+          </div>
+          <div id="pageList" class="page-list"></div>
+        </div>
+        <div class="sidebar-section components-section">
+          <h2>Components</h2>
+          <div class="component-list">
+            <button class="component-button" data-component="Heading" type="button">Heading</button>
+            <button class="component-button" data-component="Text" type="button">Text</button>
+            <button class="component-button" data-component="Button" type="button">Button</button>
+            <button class="component-button" data-component="Image" type="button">Image</button>
+          </div>
         </div>
       </aside>
 
@@ -33,6 +42,7 @@
         <div class="canvas-toolbar">
           <div>
             <h1 id="builderTitle">App Builder</h1>
+            <span id="pageStatus" class="page-status">Home</span>
             <span id="projectStatus" class="status">Loading project...</span>
           </div>
         </div>
@@ -52,8 +62,21 @@
         </div>
       </aside>
     </section>
+
+    <div id="pageDialog" class="dialog-backdrop" hidden>
+      <div class="page-dialog" role="dialog" aria-modal="true" aria-labelledby="pageDialogTitle">
+        <h2 id="pageDialogTitle">Add Page</h2>
+        <label for="pageNameInput">Page name</label>
+        <input id="pageNameInput" type="text" maxlength="50" placeholder="e.g. About">
+        <div class="dialog-actions">
+          <button id="cancelPageButton" class="secondary" type="button">Cancel</button>
+          <button id="confirmPageButton" class="primary" type="button">Add Page</button>
+        </div>
+        <p id="pageDialogMessage" class="helper"></p>
+      </div>
+    </div>
   </main>
 
-  <script type="module" src="builder-v2.js?v=supabase1"></script>
+  <script type="module" src="builder-v2.js?v=pages1"></script>
 </body>
 </html>
