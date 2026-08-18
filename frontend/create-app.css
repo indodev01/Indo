@@ -3,9 +3,9 @@
 }
 
 :root {
-  --bg: #f7f9fc;
+  --bg: #f6f8fc;
   --surface: #ffffff;
-  --border: #e2e7ef;
+  --border: #dfe5ef;
   --text: #172033;
   --muted: #66738c;
   --accent: #354bd1;
@@ -23,6 +23,12 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Arial, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
 }
 
 a {
@@ -70,7 +76,7 @@ a {
 }
 
 .hero {
-  padding: 44px 8px 24px;
+  padding: 44px 8px 26px;
 }
 
 .eyebrow {
@@ -95,26 +101,20 @@ a {
   line-height: 1.6;
 }
 
-.panel-shell {
-  width: 100%;
-}
-
 .panel {
   width: 100%;
-  margin: 0;
   padding: 30px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 18px;
   box-shadow: 0 10px 30px rgba(31, 41, 55, .05);
 }
 
 .field {
-  margin: 0 0 24px;
+  margin: 0 0 25px;
 }
 
-.field label,
-.section-heading label {
+.field label {
   display: block;
   margin-bottom: 9px;
   font-size: 14px;
@@ -126,7 +126,7 @@ a {
   font-weight: 400;
 }
 
-.field-help {
+.field > small {
   display: block;
   margin-top: 8px;
   color: #7b879b;
@@ -141,8 +141,7 @@ a {
   border-radius: 10px;
   background: #fff;
   color: var(--text);
-  font: inherit;
-  font-size: 15px;
+  outline: none;
 }
 
 .field textarea {
@@ -153,88 +152,127 @@ a {
 
 .field input:focus,
 .field textarea:focus {
-  outline: 2px solid #c6d0ff;
   border-color: #5368d8;
+  box-shadow: 0 0 0 3px rgba(83, 104, 216, .12);
+}
+
+.start-field {
+  margin-top: 30px;
 }
 
 .section-heading {
-  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
-.section-heading span {
+.section-heading label {
+  margin-bottom: 4px;
+}
+
+.section-heading > div > span {
   color: #7b879b;
   font-size: 12px;
 }
 
-.choices {
+.selected-label {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.start-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.choice {
-  position: relative;
+.start-option {
+  width: 100%;
+  min-height: 144px;
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: 52px 1fr 28px;
   align-items: start;
-  gap: 13px;
-  min-height: 118px;
-  padding: 18px;
-  border: 1px solid #dbe1eb;
-  border-radius: 12px;
+  gap: 14px;
+  padding: 20px;
+  border: 2px solid var(--border);
+  border-radius: 15px;
   background: #fff;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
-  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
 }
 
-.choice:hover {
-  border-color: #8da0df;
+.start-option:hover {
+  border-color: #98a6db;
+  transform: translateY(-1px);
 }
 
-.choice.active {
-  border-color: #5368d8;
+.start-option.selected {
+  border-color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 0 0 2px rgba(83, 104, 216, .08);
+  box-shadow: 0 0 0 3px rgba(53, 75, 209, .09);
 }
 
-.choice input {
-  margin: 4px 0 0;
-  accent-color: var(--accent);
-}
-
-.choice-icon {
-  width: 38px;
-  height: 38px;
+.option-icon {
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #e9edff;
   color: var(--accent);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
 }
 
-.choice-copy {
+.grid-icon {
+  font-size: 26px;
+}
+
+.option-content {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  padding-top: 2px;
 }
 
-.choice-copy strong {
-  font-size: 16px;
+.option-content strong {
+  font-size: 17px;
 }
 
-.choice-copy small {
-  color: #6d7890;
+.option-content small {
+  color: #68758d;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+.option-check {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #bdc7d8;
+  border-radius: 50%;
+  color: transparent;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.start-option.selected .option-check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .actions {
   display: flex;
-  align-items: center;
   justify-content: flex-end;
+  align-items: center;
   gap: 18px;
-  margin-top: 28px;
+  margin-top: 30px;
   padding-top: 22px;
   border-top: 1px solid #edf0f5;
 }
@@ -247,13 +285,12 @@ a {
 }
 
 .primary-button {
-  min-width: 132px;
+  min-width: 138px;
   border: 0;
   border-radius: 10px;
   padding: 13px 20px;
   background: var(--accent);
   color: #fff;
-  font: inherit;
   font-weight: 800;
   cursor: pointer;
 }
@@ -298,8 +335,13 @@ a {
     padding: 22px;
   }
 
-  .choices {
+  .start-options {
     grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    align-items: start;
+    flex-direction: column;
   }
 
   .actions {
