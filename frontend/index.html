@@ -4,52 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Indo Dev App</title>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
-  <header class="app-header">
-    <a class="app-brand" href="index.html" aria-label="Indo Dev home">
-      <img src="landing/official-logo.svg?v=5" alt="Indo Dev">
-    </a>
-    <nav class="app-nav" aria-label="Application navigation">
-      <a href="landing/index.html#features">Features</a>
-      <a href="templates.html">Templates</a>
-      <a href="landing/index.html#pricing">Pricing</a>
-      <a href="landing/index.html#docs">Docs</a>
-      <a href="landing/index.html#support">Support</a>
-    </nav>
-    <div class="app-header-actions">
-      <a id="authAction" class="app-link-button" href="auth/sign-in.html">Sign In</a>
-      <a id="createAction" class="app-primary-button" href="create-app.html">Create App</a>
-    </div>
-  </header>
+  <main class="app-shell">
+    <aside class="workspace-sidebar">
+      <a class="side-brand" href="index.html" aria-label="Indo Dev home"><img src="landing/official-logo.svg?v=6" alt="Indo Dev"></a>
+      <nav class="side-nav" aria-label="Workspace navigation">
+        <a class="active" href="index.html">⌂ <span>Dashboard</span></a>
+        <a href="#projects">▦ <span>My Apps</span></a>
+        <a href="templates.html">◇ <span>Templates</span></a>
+        <a href="#activity">◌ <span>Activity</span></a>
+        <a href="landing/index.html#support">? <span>Help & Docs</span></a>
+      </nav>
+      <div class="side-footer"><div class="user-badge">ID</div><div class="user-copy"><strong>Indo Dev</strong><span>Workspace</span></div></div>
+    </aside>
 
-  <main class="app">
-    <section class="intro workspace-hero">
-      <p class="eyebrow">Indo Dev Workspace</p>
-      <h1>Build. Preview. Get Your App.</h1>
-      <p id="workspaceMessage">Create and customize apps without writing complicated code.</p>
-      <a class="app-primary-button" href="create-app.html">+ Create New App</a>
-    </section>
+    <section class="workspace-main">
+      <header class="workspace-topbar">
+        <div class="breadcrumb"><span>Dashboard</span><span>/</span><strong>Home</strong></div>
+        <div class="top-actions"><a id="authAction" class="top-link" href="auth/sign-in.html">Sign In</a><a id="createAction" class="top-primary" href="create-app.html">Create App</a></div>
+      </header>
 
-    <section class="quick-actions" aria-label="Quick actions">
-      <a class="action-card" href="create-app.html"><span class="action-icon">＋</span><h2>Create New App</h2><p>Start from a blank app or choose a template.</p></a>
-      <a class="action-card" href="templates.html"><span class="action-icon">▦</span><h2>Template Library</h2><p>Choose a ready-made starting point for your app.</p></a>
-      <a class="action-card" href="builder-v2.html"><span class="action-icon">◈</span><h2>App Builder</h2><p>Add pages and components in a visual builder.</p></a>
-      <a class="action-card" href="preview.html"><span class="action-icon">◉</span><h2>Live Preview</h2><p>See your app before moving to final build steps.</p></a>
-    </section>
+      <section class="welcome-panel"><div><p class="eyebrow">INDO DEV WORKSPACE</p><h1>Build. Preview. Get Your App.</h1><p id="workspaceMessage">Create and customize apps without writing complicated code.</p></div><a class="hero-action" href="create-app.html">+ Create New App</a></section>
 
-    <section class="projects">
-      <div class="section-heading">
-        <div><p class="eyebrow">Your workspace</p><h2>Your Projects</h2></div>
-        <a class="app-link-button" href="create-app.html">New Project</a>
-      </div>
-      <div id="projectList" class="project-list" aria-live="polite">
-        <div class="project-card empty-project-card"><h3>Loading your projects...</h3><p>Please wait while your workspace loads.</p></div>
-      </div>
+      <section class="quick-actions" aria-label="Quick actions">
+        <a class="action-card primary-card" href="create-app.html"><span class="action-icon">+</span><h2>Create New App</h2><p>Start from scratch.</p></a>
+        <a class="action-card" href="templates.html"><span class="action-icon">▦</span><h2>Use Template</h2><p>Choose a ready-made starter.</p></a>
+        <a class="action-card" href="builder-v2.html"><span class="action-icon">◇</span><h2>App Builder</h2><p>Drag, drop and build.</p></a>
+        <a class="action-card" href="preview.html"><span class="action-icon">◉</span><h2>Live Preview</h2><p>See your app live.</p></a>
+      </section>
+
+      <section id="projects" class="projects-section">
+        <div class="section-heading"><div><p class="eyebrow">YOUR WORKSPACE</p><h2>My Apps</h2></div><a class="top-link" href="create-app.html">New Project</a></div>
+        <div id="projectList" class="project-list" aria-live="polite"><div class="project-card empty-project-card"><h3>Loading your projects...</h3><p>Please wait while your workspace loads.</p></div></div>
+      </section>
+
+      <section id="activity" class="activity-section"><div class="section-heading"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>What changed</h2></div></div><div class="recent-panel"><div class="recent-item"><span class="recent-dot"></span><div><strong>Workspace ready</strong><p>Your Indo Dev workspace is connected.</p></div></div><div class="recent-item"><span class="recent-dot"></span><div><strong>Supabase connected</strong><p>Projects and builder data are stored securely.</p></div></div></div></section>
     </section>
   </main>
-
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>
