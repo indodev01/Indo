@@ -2,11 +2,9 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/fireba
 import {
   getAuth,
   createUserWithEmailAndPassword,
-  sendEmailVerification,
   updateProfile,
   signInWithPopup,
-  GoogleAuthProvider,
-  signOut
+  GoogleAuthProvider
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { getDatabase, ref, set } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
 import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './firebase-config.js';
@@ -52,6 +50,7 @@ if (!isFirebaseConfigured()) {
       account: {
         status: 'active',
         emailVerified: Boolean(user.emailVerified),
+        verificationRequired: false,
         provider: user.providerData?.[0]?.providerId || 'password'
       },
       projects: {},
@@ -81,11 +80,9 @@ if (!isFirebaseConfigured()) {
 
       await updateProfile(user, { displayName: name });
       await saveUserRecord(user, name);
-      await sendEmailVerification(user);
-      await signOut(auth);
 
-      showMessage('Account created. Check your email and verify it before signing in.');
-      signUpForm.reset();
+      showMessage('Account created. Opening your dashboard...');
+      window.location.href = '../dashboard/index.html';
     } catch (error) {
       showMessage(getReadableAuthError(error));
     } finally {
