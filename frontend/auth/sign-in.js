@@ -3,8 +3,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   signInWithPopup,
-  GoogleAuthProvider,
-  signOut
+  GoogleAuthProvider
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
 import { firebaseConfig, isFirebaseConfigured } from './firebase-config.js';
 
@@ -49,15 +48,7 @@ if (!isFirebaseConfigured()) {
     showMessage('Checking your account...');
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      if (!user.emailVerified) {
-        await signOut(auth);
-        showMessage('Please verify your email address before signing in. Check your inbox.');
-        return;
-      }
-
+      await signInWithEmailAndPassword(auth, email, password);
       window.location.href = '../dashboard/index.html';
     } catch (error) {
       showMessage(getReadableAuthError(error));
