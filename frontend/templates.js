@@ -8,78 +8,61 @@ const projectId = params.get('projectId');
 
 function setMessage(text) { message.textContent = text; }
 
+function esc(value) {
+  const div = document.createElement('div');
+  div.textContent = value ?? '';
+  return div.innerHTML;
+}
+
+function renderMiniComponent(component) {
+  const type = component?.type;
+  const p = component?.props || {};
+  if (type === 'Heading') return `<div class="mini-heading" style="color:${esc(p.color || '#fff')};font-size:${Math.min(Number(p.size) || 18,22)}px">${esc(p.text || 'Heading')}</div>`;
+  if (type === 'Text') return `<div class="mini-text" style="color:${esc(p.color || '#9aa4b2')}">${esc(p.text || 'Text')}</div>`;
+  if (type === 'Image') return p.url ? `<img class="mini-image" src="${esc(p.url)}" alt="${esc(p.alt || '')}">` : '';
+  if (type === 'Video') {
+    const poster = p.posterUrl || '';
+    return `<div class="mini-video" style="background-image:url('${esc(poster)}')"><span class="mini-play">▶</span><span class="mini-video-title">${esc(p.title || 'Video')}</span></div>`;
+  }
+  if (type === 'Button') return `<div class="mini-button" style="background:${esc(p.background || '#ff2b55')};color:${esc(p.color || '#fff')}">${esc(p.label || 'Button')}</div>`;
+  if (type === 'Card') return `<div class="mini-card-large"><strong>${esc(p.title || 'Card')}</strong><span>${esc(p.text || '')}</span></div>`;
+  if (type === 'Input') return `<div class="mini-input"><small>${esc(p.label || 'Input')}</small><div>${esc(p.placeholder || '')}</div></div>`;
+  if (type === 'List') return `<div class="mini-list"><strong>${esc(p.title || 'List')}</strong>${(p.items || []).slice(0,4).map(item => `<span>${esc(item)}</span>`).join('')}</div>`;
+  if (type === 'Menu') return `<div class="mini-menu">${(p.items || []).slice(0,4).map(item => `<span>${esc(item)}</span>`).join('')}</div>`;
+  return '';
+}
+
 function renderTemplate(template) {
   const article = document.createElement('article');
   article.className = 'template-card';
+  const definition = template.definition || {};
+  const home = definition.pages?.home || Object.values(definition.pages || {})[0] || { components: [] };
+  const components = Array.isArray(home.components) ? home.components : [];
+  const visible = components.filter(c => !c?.demoOnly || c?.props?.demoOnly).slice(0, 7);
+  const previewHtml = visible.map(renderMiniComponent).join('');
   article.innerHTML = `
-    <div class="template-preview">
-      <div class="mini-phone">
-        <div class="mini-line"></div><div class="mini-line light"></div>
-        <div class="mini-cards"><div class="mini-card"></div><div class="mini-card"></div></div>
-        <div class="mini-line light"></div><div class="mini-line"></div>
+    <div class="template-preview real-preview">
+      <div class="mini-phone real-phone">
+        <div class="mini-status"><span>9:41</span><span>● ◔ ▰</span></div>
+        <div class="mini-appbar"><strong>${esc(definition.metadata?.title || template.name)}</strong><span>⌕</span></div>
+        <div class="mini-screen">${previewHtml || '<div class="mini-text">Preview</div>'}</div>
+        <div class="mini-bottom-nav">${(definition.navigation?.items || []).slice(0,4).map(item => `<span>${esc(item.label)}</span>`).join('')}</div>
       </div>
     </div>
     <div class="template-body">
-      <h2></h2><p></p><button class="template-button" type="button">Use Template</button>
+      <h2></h2><p></p>
+      <div class="template-actions"><button class="template-preview-button" type="button">Preview App</button><button class="template-button" type="button">Use Template</button></div>
     </div>`;
   article.querySelector('h2').textContent = template.name;
   article.querySelector('p').textContent = template.description;
-  article.querySelector('button').addEventListener('click', () => useTemplate(template));
+  article.querySelector('.template-button').addEventListener('click', () => useTemplate(template));
+  article.querySelector('.template-preview-button').addEventListener('click', () => openTemplatePreview(template));
   grid.appendChild(article);
 }
 
-function demoImage(id) {
-  return {
-    id,
-    type: 'Image',
-    demoOnly: true,
-    props: {
-      url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
-      alt: 'Template demo image',
-      radius: 16,
-      demoOnly: true
-    }
-  };
-}
-
-function addTemplateDemoMedia(template) {
-  const definition = structuredClone(template.definition || {});
-  definition.pages = definition.pages || {};
-  const home = definition.pages.home || Object.values(definition.pages)[0];
-  if (home) {
-    home.components = Array.isArray(home.components) ? home.components : [];
-    if (!home.components.some((component) => component?.demoOnly || component?.props?.demoOnly)) {
-      home.components.push(demoImage(`${template.slug}-demo-image`));
-    }
-  }
-
-  if (template.slug === 'video-streaming') {
-    const details = definition.pages.details || (definition.pages.details = {
-      id: 'details', name: 'Details', slug: 'details', components: [], styles: { background: '#ffffff', padding: '24px' }, settings: { title: 'Details' }
-    });
-    details.components = Array.isArray(details.components) ? details.components : [];
-    const existingVideo = details.components.find((component) => component?.type === 'Video');
-    if (existingVideo) {
-      existingVideo.demoOnly = true;
-      existingVideo.props = {
-        ...existingVideo.props,
-        url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
-        posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80',
-        title: 'Template Demo Video',
-        controls: true,
-        autoplay: false,
-        loop: false,
-        muted: false,
-        demoOnly: true
-      };
-    } else {
-      details.components.push({
-        id: 'video-streaming-demo-video', type: 'Video', demoOnly: true,
-        props: { url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80', title: 'Template Demo Video', controls: true, autoplay: false, loop: false, muted: false, demoOnly: true }
-      });
-    }
-  }
-  return definition;
+function openTemplatePreview(template) {
+  sessionStorage.setItem('indoTemplatePreview', JSON.stringify({ name: template.name, description: template.description, definition: template.definition }));
+  window.location.href = `template-preview.html?slug=${encodeURIComponent(template.slug)}`;
 }
 
 async function currentUser() {
@@ -90,46 +73,28 @@ async function currentUser() {
 }
 
 async function useTemplate(template) {
-  const button = [...grid.querySelectorAll('button')].find((b) => b.closest('.template-card')?.querySelector('h2')?.textContent === template.name);
+  const button = [...grid.querySelectorAll('.template-button')].find((b) => b.closest('.template-card')?.querySelector('h2')?.textContent === template.name);
   if (button) button.disabled = true;
   setMessage(`Applying ${template.name}...`);
-
   try {
     const user = await currentUser();
     if (!user) return;
-
-    const definition = addTemplateDemoMedia(template);
-
+    const definition = structuredClone(template.definition || {});
     if (projectId) {
-      const { data: project, error: projectError } = await supabase
-        .from('projects').select('id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
+      const { data: project, error: projectError } = await supabase.from('projects').select('id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
       if (projectError) throw projectError;
       if (!project) throw new Error('Project not found or access denied');
-
       const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: project.name, description: template.description } };
-      const { error } = await supabase
-        .from('projects')
-        .update({ pages: nextDefinition.pages, app_definition: nextDefinition, start_mode: 'template', updated_at: new Date().toISOString() })
-        .eq('id', projectId).eq('user_id', user.id);
+      const { error } = await supabase.from('projects').update({ pages: nextDefinition.pages || {}, app_definition: nextDefinition, start_mode: 'template', updated_at: new Date().toISOString() }).eq('id', projectId).eq('user_id', user.id);
       if (error) throw error;
       setMessage('Template applied. Opening Design Studio...');
       window.setTimeout(() => { window.location.href = `builder-v2.html?projectId=${encodeURIComponent(projectId)}`; }, 250);
       return;
     }
-
     const name = `${template.name} App`;
     const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: name, description: template.description } };
-    const { data: project, error } = await supabase.from('projects').insert({
-      user_id: user.id,
-      name,
-      description: template.description,
-      start_mode: 'template',
-      status: 'draft',
-      pages: nextDefinition.pages,
-      app_definition: nextDefinition
-    }).select('id').single();
+    const { data: project, error } = await supabase.from('projects').insert({ user_id: user.id, name, description: template.description, start_mode: 'template', status: 'draft', pages: nextDefinition.pages || {}, app_definition: nextDefinition }).select('id').single();
     if (error) throw error;
-
     setMessage('Project created. Opening Design Studio...');
     window.setTimeout(() => { window.location.href = `builder-v2.html?projectId=${encodeURIComponent(project.id)}`; }, 250);
   } catch (error) {
@@ -142,23 +107,16 @@ async function useTemplate(template) {
 async function loadTemplates() {
   const user = await currentUser();
   if (!user) return;
-
   if (projectId) {
     const { data: project, error } = await supabase.from('projects').select('id,user_id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
     if (error) throw error;
     if (!project) throw new Error('Project not found or access denied');
     appTitle.textContent = `Select a template for: ${project.name}`;
   }
-
-  const { data: templates, error } = await supabase
-    .from('templates').select('id,slug,name,description,definition').eq('is_active', true).order('created_at', { ascending: true });
+  const { data: templates, error } = await supabase.from('templates').select('id,slug,name,description,definition').eq('is_active', true).order('created_at', { ascending: true });
   if (error) throw error;
-
   grid.innerHTML = '';
-  if (!templates?.length) {
-    grid.innerHTML = '<p class="message">No templates are available yet.</p>';
-    return;
-  }
+  if (!templates?.length) { grid.innerHTML = '<p class="message">No templates are available yet.</p>'; return; }
   templates.forEach(renderTemplate);
 }
 
