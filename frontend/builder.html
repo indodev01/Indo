@@ -4,38 +4,66 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Builder - Indo Dev</title>
-  <link rel="stylesheet" href="builder.css">
+  <link rel="stylesheet" href="builder.css?v=5">
 </head>
 <body>
-  <main class="page">
-    <header class="page-header">
-      <a href="index.html" class="back-link">← Dashboard</a>
-      <div>
-        <h1 id="builderTitle">App Builder</h1>
-        <p id="builderSubtitle">Build your app step by step.</p>
+  <main class="builder-page">
+    <header class="topbar">
+      <a class="brand" href="index.html"><img src="landing/official-logo.svg?v=5" alt="Indo Dev"></a>
+      <div class="topbar-title">
+        <span>APP BUILDER</span>
+        <strong id="builderTitle">Loading project...</strong>
       </div>
-      <button id="previewButton" class="primary-button">Open Preview</button>
+      <div class="topbar-actions">
+        <a href="index.html" class="secondary-button">Home</a>
+        <button id="saveButton" class="primary-button" type="button">Save</button>
+        <a id="previewButton" class="primary-button" href="#">Preview</a>
+      </div>
     </header>
 
-    <section class="builder-layout">
-      <aside class="panel">
-        <h2>Components</h2>
-        <button class="component-button" data-component="Heading">Heading</button>
-        <button class="component-button" data-component="Text">Text</button>
-        <button class="component-button" data-component="Button">Button</button>
-        <button class="component-button" data-component="Image">Image</button>
+    <section class="builder-grid">
+      <aside class="panel sidebar">
+        <div class="panel-heading">
+          <h2>Components</h2>
+          <p>Add items to your page.</p>
+        </div>
+        <button class="component-button" data-component="Heading" type="button"><span>H</span>Heading</button>
+        <button class="component-button" data-component="Text" type="button"><span>T</span>Text</button>
+        <button class="component-button" data-component="Button" type="button"><span>↗</span>Button</button>
+        <button class="component-button" data-component="Image" type="button"><span>▧</span>Image</button>
+        <p id="builderMessage" class="message" role="status"></p>
       </aside>
 
-      <section class="panel canvas-panel">
-        <h2>Canvas</h2>
-        <div id="canvas" class="canvas">
-          <p class="canvas-placeholder">Choose a component to add it here.</p>
+      <section class="panel workspace">
+        <div class="panel-heading workspace-heading">
+          <div>
+            <h2>Canvas</h2>
+            <p id="projectStatus">Ready to build</p>
+          </div>
+          <span id="saveStatus" class="save-status">All changes saved</span>
         </div>
-        <p id="message" class="message"></p>
+        <div id="canvas" class="canvas" aria-label="App canvas">
+          <div id="emptyState" class="empty-state">
+            <div class="empty-icon">＋</div>
+            <h3>Start building your app</h3>
+            <p>Select a component from the left to add it here.</p>
+          </div>
+        </div>
       </section>
+
+      <aside class="panel inspector">
+        <div class="panel-heading">
+          <h2>Project</h2>
+          <p>Current app details.</p>
+        </div>
+        <div class="detail-row"><span>Name</span><strong id="projectName">—</strong></div>
+        <div class="detail-row"><span>Mode</span><strong id="projectMode">—</strong></div>
+        <div class="detail-row"><span>Status</span><strong id="projectState">Draft</strong></div>
+        <div class="detail-row"><span>Project ID</span><code id="projectIdText">—</code></div>
+      </aside>
     </section>
   </main>
 
-  <script src="builder.js"></script>
+  <script type="module" src="builder.js?v=5"></script>
 </body>
 </html>
