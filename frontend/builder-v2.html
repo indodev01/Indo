@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Builder - Indo Dev</title>
-  <link rel="stylesheet" href="builder-v2.css?v=pages1">
+  <link rel="stylesheet" href="builder-v2.css?v=components1">
 </head>
 <body>
   <main class="builder-page">
     <header class="topbar">
       <a class="brand" href="dashboard/index.html" aria-label="Indo Dev home">
-        <img src="landing/official-logo.svg?v=pages1" alt="Indo Dev">
+        <img src="landing/official-logo.svg?v=components1" alt="Indo Dev">
       </a>
       <div class="topbar-actions">
         <button id="saveButton" class="secondary" type="button">Save</button>
@@ -27,13 +27,25 @@
           </div>
           <div id="pageList" class="page-list"></div>
         </div>
+
         <div class="sidebar-section components-section">
-          <h2>Components</h2>
+          <div class="sidebar-heading-row">
+            <h2>Components</h2>
+            <span class="component-count">12</span>
+          </div>
           <div class="component-list">
-            <button class="component-button" data-component="Heading" type="button">Heading</button>
-            <button class="component-button" data-component="Text" type="button">Text</button>
-            <button class="component-button" data-component="Button" type="button">Button</button>
-            <button class="component-button" data-component="Image" type="button">Image</button>
+            <button class="component-button" data-component="Heading" type="button">H&nbsp;&nbsp; Heading</button>
+            <button class="component-button" data-component="Text" type="button">T&nbsp;&nbsp; Text</button>
+            <button class="component-button" data-component="Button" type="button">▭&nbsp;&nbsp; Button</button>
+            <button class="component-button" data-component="Image" type="button">▧&nbsp;&nbsp; Image</button>
+            <button class="component-button" data-component="Input" type="button">▱&nbsp;&nbsp; Input</button>
+            <button class="component-button" data-component="Card" type="button">▣&nbsp;&nbsp; Card</button>
+            <button class="component-button" data-component="Container" type="button">□&nbsp;&nbsp; Container</button>
+            <button class="component-button" data-component="Icon" type="button">✦&nbsp;&nbsp; Icon</button>
+            <button class="component-button" data-component="List" type="button">☷&nbsp;&nbsp; List</button>
+            <button class="component-button" data-component="Menu" type="button">☰&nbsp;&nbsp; Menu</button>
+            <button class="component-button" data-component="Divider" type="button">━&nbsp;&nbsp; Divider</button>
+            <button class="component-button" data-component="Spacer" type="button">↕&nbsp;&nbsp; Spacer</button>
           </div>
         </div>
       </aside>
@@ -45,9 +57,13 @@
             <span id="pageStatus" class="page-status">Home</span>
             <span id="projectStatus" class="status">Loading project...</span>
           </div>
+          <div class="device-toggle" aria-label="Preview device">
+            <button class="device-button active" type="button" data-device="desktop">Desktop</button>
+            <button class="device-button" type="button" data-device="mobile">Mobile</button>
+          </div>
         </div>
 
-        <div id="canvas" class="canvas">
+        <div id="canvas" class="canvas canvas-desktop">
           <div id="emptyState" class="empty">Choose a component from the left to start building.</div>
         </div>
       </section>
@@ -77,6 +93,6 @@
     </div>
   </main>
 
-  <script type="module" src="builder-v2.js?v=pages1"></script>
+  <script type="module" src="builder-v2.js?v=components1"></script>
 </body>
 </html>
