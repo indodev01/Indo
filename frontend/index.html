@@ -3,46 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Indo Dev App</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <meta name="theme-color" content="#070b17">
+  <title>Indo Dev — Workspace</title>
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <main class="app-shell">
     <aside class="workspace-sidebar">
-      <a class="side-brand" href="index.html" aria-label="Indo Dev home"><img src="landing/official-logo.svg?v=6" alt="Indo Dev"></a>
+      <a class="side-brand" href="index.html" aria-label="Indo Dev home">
+        <img src="landing/official-logo.svg?v=7" alt="Indo Dev">
+        <span class="version-badge">v2.0</span>
+      </a>
+
       <nav class="side-nav" aria-label="Workspace navigation">
-        <a class="active" href="index.html">⌂ <span>Dashboard</span></a>
-        <a href="#projects">▦ <span>My Apps</span></a>
-        <a href="templates.html">◇ <span>Templates</span></a>
-        <a href="#activity">◌ <span>Activity</span></a>
-        <a href="landing/index.html#support">? <span>Help & Docs</span></a>
+        <a class="active" href="index.html"><span class="nav-icon">⌂</span><span>Dashboard</span></a>
+        <a href="#projects"><span class="nav-icon">▦</span><span>My Apps</span></a>
+        <a href="templates.html"><span class="nav-icon">◇</span><span>Templates</span></a>
+        <a href="builder-v2.html"><span class="nav-icon">✦</span><span>Design Studio</span></a>
+        <a href="#activity"><span class="nav-icon">◌</span><span>Activity</span></a>
+        <a href="landing/index.html#support"><span class="nav-icon">?</span><span>Help & Docs</span></a>
       </nav>
-      <div class="side-footer"><div class="user-badge">ID</div><div class="user-copy"><strong>Indo Dev</strong><span>Workspace</span></div></div>
+
+      <div class="sidebar-bottom">
+        <a class="sidebar-link" href="create-app-v2.html"><span>＋</span> Create New App</a>
+        <div class="side-footer">
+          <div class="user-badge">ID</div>
+          <div class="user-copy"><strong>Indo Dev</strong><span>Workspace</span></div>
+          <span class="footer-dot"></span>
+        </div>
+      </div>
     </aside>
 
     <section class="workspace-main">
       <header class="workspace-topbar">
-        <div class="breadcrumb"><span>Dashboard</span><span>/</span><strong>Home</strong></div>
-        <div class="top-actions"><a id="authAction" class="top-link" href="auth/sign-in.html">Sign In</a><a id="createAction" class="top-primary" href="create-app.html">Create App</a></div>
+        <div class="breadcrumb"><span>Workspace</span><span>/</span><strong>Dashboard</strong></div>
+        <div class="top-actions">
+          <button class="icon-button" type="button" aria-label="Search">⌕</button>
+          <button class="icon-button" type="button" aria-label="Notifications">♢</button>
+          <a id="authAction" class="top-link" href="auth/sign-in.html">Sign In</a>
+          <a id="createAction" class="top-primary" href="create-app-v2.html">Create App</a>
+        </div>
       </header>
 
-      <section class="welcome-panel"><div><p class="eyebrow">INDO DEV WORKSPACE</p><h1>Build. Preview. Get Your App.</h1><p id="workspaceMessage">Create and customize apps without writing complicated code.</p></div><a class="hero-action" href="create-app.html">+ Create New App</a></section>
-
-      <section class="quick-actions" aria-label="Quick actions">
-        <a class="action-card primary-card" href="create-app.html"><span class="action-icon">+</span><h2>Create New App</h2><p>Start from scratch.</p></a>
-        <a class="action-card" href="templates.html"><span class="action-icon">▦</span><h2>Use Template</h2><p>Choose a ready-made starter.</p></a>
-        <a class="action-card" href="builder-v2.html"><span class="action-icon">◇</span><h2>App Builder</h2><p>Drag, drop and build.</p></a>
-        <a class="action-card" href="preview.html"><span class="action-icon">◉</span><h2>Live Preview</h2><p>See your app live.</p></a>
+      <section class="hero-panel">
+        <div class="hero-copy">
+          <p class="eyebrow">INDO DEV WORKSPACE</p>
+          <h1>Build. Preview.<br><span>Publish. Grow.</span></h1>
+          <p id="workspaceMessage">Create Android apps from templates or a blank canvas — without writing complicated code.</p>
+          <div class="hero-actions">
+            <a class="hero-action" href="create-app-v2.html">Get Started Free <span>→</span></a>
+            <a class="hero-secondary" href="templates.html">Explore Templates</a>
+          </div>
+          <div class="hero-trust"><span>✓ No coding required</span><span>✓ 24H free trial</span><span>✓ Live preview</span></div>
+        </div>
+        <div class="hero-glow" aria-hidden="true"><div class="glow-orbit orbit-one"></div><div class="glow-orbit orbit-two"></div><div class="glow-core">✦</div></div>
       </section>
 
-      <section id="projects" class="projects-section">
-        <div class="section-heading"><div><p class="eyebrow">YOUR WORKSPACE</p><h2>My Apps</h2></div><a class="top-link" href="create-app.html">New Project</a></div>
-        <div id="projectList" class="project-list" aria-live="polite"><div class="project-card empty-project-card"><h3>Loading your projects...</h3><p>Please wait while your workspace loads.</p></div></div>
+      <section class="stats-grid" aria-label="Workspace statistics">
+        <article class="stat-card"><div class="stat-icon purple">▱</div><div><span>Total Apps</span><strong id="statTotal">12</strong><small>Projects in workspace</small></div></article>
+        <article class="stat-card"><div class="stat-icon green">✓</div><div><span>Active Apps</span><strong id="statActive">5</strong><small>Ready to publish</small></div></article>
+        <article class="stat-card"><div class="stat-icon orange">◷</div><div><span>Trial Apps</span><strong id="statTrial">4</strong><small>24H remaining</small></div></article>
+        <article class="stat-card"><div class="stat-icon red">◈</div><div><span>Expired</span><strong id="statExpired">3</strong><small>Needs activation</small></div></article>
       </section>
 
-      <section id="activity" class="activity-section"><div class="section-heading"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>What changed</h2></div></div><div class="recent-panel"><div class="recent-item"><span class="recent-dot"></span><div><strong>Workspace ready</strong><p>Your Indo Dev workspace is connected.</p></div></div><div class="recent-item"><span class="recent-dot"></span><div><strong>Supabase connected</strong><p>Projects and builder data are stored securely.</p></div></div></div></section>
+      <section class="section-block" id="projects">
+        <div class="section-heading">
+          <div><p class="eyebrow">YOUR WORKSPACE</p><h2>My Apps</h2></div>
+          <a class="view-link" href="templates.html">View all →</a>
+        </div>
+        <div id="projectList" class="project-grid" aria-live="polite">
+          <div class="project-card loading-card"><div class="skeleton skeleton-icon"></div><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-line"></div></div>
+          <div class="project-card loading-card"><div class="skeleton skeleton-icon"></div><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-line"></div></div>
+          <div class="project-card loading-card"><div class="skeleton skeleton-icon"></div><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-line"></div></div>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <article class="promo-card">
+          <div class="promo-copy"><p class="eyebrow">FREE TRIAL</p><h2>Your first app is free for 24 hours.</h2><p>Build, preview and test the complete experience before you choose a monthly plan.</p><a class="promo-button" href="create-app-v2.html">Create Trial App →</a></div>
+          <div class="promo-clock"><span>24</span><small>HOURS</small></div>
+        </article>
+
+        <article class="activity-card" id="activity">
+          <div class="section-heading compact"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>What changed</h2></div></div>
+          <div class="activity-list">
+            <div class="activity-item"><span class="activity-dot purple-dot"></span><div><strong>Workspace ready</strong><p>Supabase is connected to your project data.</p></div><time>Now</time></div>
+            <div class="activity-item"><span class="activity-dot green-dot"></span><div><strong>Builder updated</strong><p>New component controls are available.</p></div><time>2h</time></div>
+            <div class="activity-item"><span class="activity-dot orange-dot"></span><div><strong>Publishing guide</strong><p>Free Play Store & App Store guidance is available.</p></div><time>1d</time></div>
+          </div>
+        </article>
+      </section>
     </section>
   </main>
-  <script type="module" src="app.js?v=6"></script>
+
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>
