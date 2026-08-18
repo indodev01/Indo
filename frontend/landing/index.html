@@ -3,54 +3,109 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="description" content="Indo Dev is a no-code app builder for turning ideas into real apps.">
   <title>Indo Dev - Turn Your Dream Into an App</title>
   <link rel="stylesheet" href="landing.css">
 </head>
 <body>
-
-  <!-- Main landing page header. -->
   <header class="site-header">
-    <a class="brand" href="index.html">
-      <img
-        class="brand-logo"
-        src="../assets/indo-dev-logo.png"
-        alt="Indo Dev logo"
-      >
-    </a>
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Indo Dev home">
+        <img class="brand-logo" src="official-logo.svg" alt="Indo Dev">
+      </a>
 
-    <a class="text-link" href="../auth/sign-in.html">
-      Sign In
-    </a>
+      <nav class="desktop-nav" aria-label="Main navigation">
+        <a href="#features">Features</a>
+        <a href="#templates">Templates</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#docs">Docs</a>
+        <a href="#support">Support</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="button button-outline" href="../auth/sign-in.html">Sign In</a>
+        <a class="button button-primary" href="../auth/sign-up.html">Get Started</a>
+      </div>
+
+      <button id="menuButton" class="menu-button" type="button" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <nav id="mobileNav" class="mobile-nav" aria-label="Mobile navigation">
+      <a href="#features">Features</a>
+      <a href="#templates">Templates</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#docs">Docs</a>
+      <a href="#support">Support</a>
+      <a href="../auth/sign-in.html">Sign In</a>
+      <a class="mobile-cta" href="../auth/sign-up.html">Get Started</a>
+    </nav>
   </header>
 
-  <!-- Main hero section. -->
-  <main class="hero">
-    <section class="hero-content">
-      <p class="eyebrow">No-code app builder</p>
+  <main>
+    <section class="hero-section">
+      <div class="hero-glow hero-glow-left"></div>
+      <div class="hero-glow hero-glow-right"></div>
 
-      <h1>Turn Your Dream Into an App</h1>
+      <div class="hero-content">
+        <p class="hero-eyebrow">NO-CODE APP BUILDER</p>
+        <h1>Turn Your Dream<br><span>Into an App</span></h1>
+        <p class="hero-text">
+          Build, preview and launch your own app without writing complicated code.
+        </p>
 
-      <p class="hero-text">
-        Build, preview and launch your own app without writing complicated code.
-      </p>
-
-      <div class="hero-actions">
-        <a class="primary-button" href="../auth/sign-up.html">
-          Get Started
-        </a>
-
-        <a class="secondary-button" href="../auth/sign-in.html">
-          I Already Have an Account
-        </a>
+        <div class="hero-actions">
+          <a class="button button-primary hero-button" href="../auth/sign-up.html">Get Started</a>
+          <a class="button button-outline hero-button" href="../auth/sign-in.html">I Already Have an Account</a>
+        </div>
       </div>
     </section>
+
+    <section id="features" class="features-section">
+      <div class="feature-card feature-purple">
+        <div class="feature-icon">▦</div>
+        <h2>No Code Builder</h2>
+        <p>Create powerful apps without writing code.</p>
+      </div>
+
+      <div class="feature-card feature-green">
+        <div class="feature-icon">▯</div>
+        <h2>Preview Instantly</h2>
+        <p>See changes in real-time with live preview.</p>
+      </div>
+
+      <div class="feature-card feature-blue">
+        <div class="feature-icon">☁</div>
+        <h2>Free APK</h2>
+        <p>Generate and download an APK for free.</p>
+      </div>
+
+      <div class="feature-card feature-orange">
+        <div class="feature-icon">◷</div>
+        <h2>24-Hour Trial</h2>
+        <p>Test your app free for 24 hours.</p>
+      </div>
+
+      <div class="feature-card feature-pink">
+        <div class="feature-icon">➜</div>
+        <h2>Launch &amp; Earn</h2>
+        <p>Publish, share and start earning.</p>
+      </div>
+    </section>
+
+    <section id="templates" class="hidden-anchor-section" aria-label="Templates section"></section>
+    <section id="pricing" class="hidden-anchor-section" aria-label="Pricing section"></section>
+    <section id="docs" class="hidden-anchor-section" aria-label="Documentation section"></section>
+    <section id="support" class="hidden-anchor-section" aria-label="Support section"></section>
   </main>
 
-  <!-- Simple footer. -->
   <footer class="site-footer">
-    <p>Indo Dev</p>
+    <p>Indo Dev — Turn Your Dream Into an App <span aria-hidden="true">♥</span></p>
   </footer>
 
+  <script src="landing.js"></script>
 </body>
 </html>
