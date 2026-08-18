@@ -40,15 +40,17 @@ function renderTemplate(template) {
   const components = Array.isArray(home.components) ? home.components : [];
   const visible = components.filter(c => !c?.demoOnly || c?.props?.demoOnly).slice(0, 7);
   const previewHtml = visible.map(renderMiniComponent).join('');
-  article.innerHTML = `
-    <div class="template-preview real-preview">
-      <div class="mini-phone real-phone">
+  const previewImage = definition.assets?.previewImage || '';
+  const preview = previewImage
+    ? `<img class="template-artwork" src="${esc(previewImage)}" alt="${esc(template.name)} preview" loading="lazy">`
+    : `<div class="mini-phone real-phone">
         <div class="mini-status"><span>9:41</span><span>● ◔ ▰</span></div>
         <div class="mini-appbar"><strong>${esc(definition.metadata?.title || template.name)}</strong><span>⌕</span></div>
         <div class="mini-screen">${previewHtml || '<div class="mini-text">Preview</div>'}</div>
         <div class="mini-bottom-nav">${(definition.navigation?.items || []).slice(0,4).map(item => `<span>${esc(item.label)}</span>`).join('')}</div>
-      </div>
-    </div>
+      </div>`;
+  article.innerHTML = `
+    <div class="template-preview real-preview">${preview}</div>
     <div class="template-body">
       <h2></h2><p></p>
       <div class="template-actions"><button class="template-preview-button" type="button">Preview App</button><button class="template-button" type="button">Use Template</button></div>
