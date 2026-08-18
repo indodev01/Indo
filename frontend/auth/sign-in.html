@@ -4,34 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In - Indo</title>
-  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="auth.css?v=2">
   <link rel="stylesheet" href="sign-in.css">
 </head>
 <body>
   <main class="auth-page">
-    <section class="auth-card">
-      <a class="brand" href="../landing/index.html">Indo</a>
-      <p class="eyebrow">Welcome back</p>
-      <h1>Sign in to Indo</h1>
-      <p class="helper-text">Use the email and password from your Indo account.</p>
+    <div class="auth-shell">
+      <section class="auth-side">
+        <div class="brand-row">
+          <a class="brand" href="../landing/index.html"><img src="../landing/official-logo.svg" alt="Indo"><span>Indo</span></a>
+          <div class="switch-top">Don’t have an account?<a href="sign-up.html">Create Account</a></div>
+        </div>
 
-      <form id="signInForm" novalidate>
-        <label for="email">Email</label>
-        <input id="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+        <div class="side-copy">
+          <h2>Turn Your Dream<br><span>Into an App</span></h2>
+          <p>The no-code platform to build, preview and launch powerful Android apps in minutes.</p>
+          <div class="benefits">
+            <div class="benefit"><i>⌘</i>No Coding Required</div>
+            <div class="benefit"><i>▣</i>Powerful Templates</div>
+            <div class="benefit"><i>◉</i>Live Preview</div>
+            <div class="benefit"><i>↥</i>Publish &amp; Earn</div>
+            <div class="benefit"><i>◷</i>24-Hour Free Trial</div>
+          </div>
+        </div>
 
-        <label for="password">Password</label>
-        <input id="password" type="password" placeholder="Your password" autocomplete="current-password" required>
+        <div class="side-illustration" aria-hidden="true">
+          <svg viewBox="0 0 420 300" role="img">
+            <defs><linearGradient id="g1" x1="0" x2="1"><stop stop-color="#6d22ff"/><stop offset="1" stop-color="#d9429f"/></linearGradient></defs>
+            <ellipse cx="210" cy="255" rx="150" ry="24" fill="rgba(109,34,255,.25)"/>
+            <rect x="125" y="52" width="132" height="180" rx="24" fill="#151b2b" stroke="#6d22ff" stroke-width="3"/>
+            <rect x="140" y="72" width="102" height="36" rx="9" fill="url(#g1)" opacity=".8"/>
+            <rect x="140" y="122" width="72" height="12" rx="6" fill="#59657b"/>
+            <rect x="140" y="146" width="86" height="12" rx="6" fill="#59657b"/>
+            <rect x="140" y="170" width="62" height="12" rx="6" fill="#59657b"/>
+            <path d="M268 210 C300 185 322 160 322 130" fill="none" stroke="url(#g1)" stroke-width="4"/>
+            <path d="M306 130 l17 -20 11 26 z" fill="url(#g1)"/>
+          </svg>
+        </div>
+        <div class="copyright">© 2026 Indo. All rights reserved.</div>
+      </section>
 
-        <button id="signInButton" class="primary-button" type="submit">Sign In</button>
-      </form>
+      <section class="auth-card">
+        <div class="form-wrap">
+          <p class="eyebrow">Welcome back</p>
+          <h1>Welcome Back 👋</h1>
+          <p class="helper-text">Sign in to continue to your account</p>
 
-      <p class="utility-link"><a href="forgot-password.html">Forgot password?</a></p>
-      <a class="demo-link" href="../demo.html">▶ Try Full App Demo</a>
-      <p id="formMessage" class="message" role="status"></p>
-      <p class="switch-link">New to Indo? <a href="sign-up.html">Create an account</a></p>
-    </section>
+          <form id="signInForm" class="auth-form" novalidate>
+            <div class="input-row">
+              <label for="email">Email Address</label>
+              <input id="email" type="email" placeholder="Enter your email" autocomplete="email" required>
+            </div>
+            <div class="input-row">
+              <label for="password">Password</label>
+              <input id="password" type="password" placeholder="Enter your password" autocomplete="current-password" required>
+            </div>
+            <p class="utility-link"><a href="forgot-password.html">Forgot Password?</a></p>
+            <button id="signInButton" class="primary-button" type="submit">Sign In</button>
+          </form>
+
+          <div class="auth-divider"><span>or continue with</span></div>
+          <div class="social-row">
+            <button class="social-btn" type="button" aria-label="Continue with Google">Google</button>
+            <button class="social-btn" type="button" aria-label="Continue with GitHub">GitHub</button>
+            <button class="social-btn" type="button" aria-label="Continue with Facebook">Facebook</button>
+          </div>
+
+          <a class="social-btn" style="display:block;text-align:center;margin-top:10px" href="../demo.html">▶ Try Full App Demo</a>
+          <p id="formMessage" class="message" role="status"></p>
+          <p class="switch-link">New to Indo? <a href="sign-up.html">Create an account</a></p>
+
+          <div class="trust-card">
+            <div class="trust-icon">♢</div>
+            <div><strong>Secure &amp; Trusted</strong><p>Your data is safe with us. We never share your information.</p></div>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
-
-  <script type="module" src="sign-in.js?v=supabase1"></script>
+  <script type="module" src="sign-in.js?v=supabase2"></script>
 </body>
 </html>
