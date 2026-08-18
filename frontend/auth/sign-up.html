@@ -13,26 +13,26 @@
       <a class="brand" href="../landing/index.html">Indo Dev</a>
       <p class="eyebrow">Create your account</p>
       <h1>Start building your app</h1>
-      <p class="helper-text">Create your Indo Dev account and begin with a template or from scratch.</p>
+      <p class="helper-text">Create a real Indo Dev account with email verification.</p>
 
-      <form id="signUpForm">
+      <form id="signUpForm" novalidate>
         <label for="name">Full name</label>
-        <input id="name" name="name" type="text" placeholder="Your name" required>
+        <input id="name" name="name" type="text" placeholder="Your name" autocomplete="name" required>
 
         <label for="email">Email</label>
-        <input id="email" name="email" type="email" placeholder="you@example.com" required>
+        <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
 
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" placeholder="Create a password" minlength="6" required>
+        <input id="password" name="password" type="password" placeholder="Create a password" minlength="6" autocomplete="new-password" required>
 
-        <button class="primary-button" type="submit">Create Account</button>
+        <button id="signUpButton" class="primary-button" type="submit">Create Account</button>
       </form>
 
-      <p id="formMessage" class="message"></p>
+      <p id="formMessage" class="message" role="status"></p>
       <p class="switch-link">Already have an account? <a href="sign-in.html">Sign in</a></p>
     </section>
   </main>
 
-  <script src="sign-up.js"></script>
+  <script type="module" src="sign-up.js"></script>
 </body>
 </html>
