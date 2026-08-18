@@ -1,0 +1,103 @@
+/*
+  Basic page styling.
+  Keep the CSS simple and readable while the project is still small.
+*/
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.app {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 32px;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+}
+
+.header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.primary-button,
+.card-button {
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-weight: 600;
+  background: #4f46e5;
+  color: white;
+}
+
+.primary-button:hover,
+.card-button:hover {
+  background: #4338ca;
+}
+
+.intro,
+.card {
+  padding: 24px;
+  border-radius: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+}
+
+.intro p,
+.card p {
+  color: #64748b;
+}
+
+.projects {
+  margin-top: 32px;
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.card p {
+  min-height: 48px;
+}
+
+.message {
+  min-height: 24px;
+  margin-top: 24px;
+  color: #334155;
+  font-weight: 600;
+}
+
+@media (max-width: 800px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+}
