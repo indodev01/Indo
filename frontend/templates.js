@@ -28,6 +28,60 @@ function renderTemplate(template) {
   grid.appendChild(article);
 }
 
+function demoImage(id) {
+  return {
+    id,
+    type: 'Image',
+    demoOnly: true,
+    props: {
+      url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+      alt: 'Template demo image',
+      radius: 16,
+      demoOnly: true
+    }
+  };
+}
+
+function addTemplateDemoMedia(template) {
+  const definition = structuredClone(template.definition || {});
+  definition.pages = definition.pages || {};
+  const home = definition.pages.home || Object.values(definition.pages)[0];
+  if (home) {
+    home.components = Array.isArray(home.components) ? home.components : [];
+    if (!home.components.some((component) => component?.demoOnly || component?.props?.demoOnly)) {
+      home.components.push(demoImage(`${template.slug}-demo-image`));
+    }
+  }
+
+  if (template.slug === 'video-streaming') {
+    const details = definition.pages.details || (definition.pages.details = {
+      id: 'details', name: 'Details', slug: 'details', components: [], styles: { background: '#ffffff', padding: '24px' }, settings: { title: 'Details' }
+    });
+    details.components = Array.isArray(details.components) ? details.components : [];
+    const existingVideo = details.components.find((component) => component?.type === 'Video');
+    if (existingVideo) {
+      existingVideo.demoOnly = true;
+      existingVideo.props = {
+        ...existingVideo.props,
+        url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+        posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80',
+        title: 'Template Demo Video',
+        controls: true,
+        autoplay: false,
+        loop: false,
+        muted: false,
+        demoOnly: true
+      };
+    } else {
+      details.components.push({
+        id: 'video-streaming-demo-video', type: 'Video', demoOnly: true,
+        props: { url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4', posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80', title: 'Template Demo Video', controls: true, autoplay: false, loop: false, muted: false, demoOnly: true }
+      });
+    }
+  }
+  return definition;
+}
+
 async function currentUser() {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
@@ -44,17 +98,18 @@ async function useTemplate(template) {
     const user = await currentUser();
     if (!user) return;
 
+    const definition = addTemplateDemoMedia(template);
+
     if (projectId) {
       const { data: project, error: projectError } = await supabase
         .from('projects').select('id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
       if (projectError) throw projectError;
       if (!project) throw new Error('Project not found or access denied');
 
-      const definition = template.definition;
       const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: project.name, description: template.description } };
       const { error } = await supabase
         .from('projects')
-        .update({ pages: definition.pages, app_definition: nextDefinition, start_mode: 'template', updated_at: new Date().toISOString() })
+        .update({ pages: nextDefinition.pages, app_definition: nextDefinition, start_mode: 'template', updated_at: new Date().toISOString() })
         .eq('id', projectId).eq('user_id', user.id);
       if (error) throw error;
       setMessage('Template applied. Opening Design Studio...');
@@ -63,7 +118,6 @@ async function useTemplate(template) {
     }
 
     const name = `${template.name} App`;
-    const definition = template.definition;
     const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: name, description: template.description } };
     const { data: project, error } = await supabase.from('projects').insert({
       user_id: user.id,
@@ -71,7 +125,7 @@ async function useTemplate(template) {
       description: template.description,
       start_mode: 'template',
       status: 'draft',
-      pages: definition.pages,
+      pages: nextDefinition.pages,
       app_definition: nextDefinition
     }).select('id').single();
     if (error) throw error;
