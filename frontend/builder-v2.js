@@ -22,10 +22,7 @@ function showStatus(text) {
 }
 
 function makeComponent(type) {
-  const base = {
-    id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    type
-  };
+  const base = { id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type };
   if (type === 'Heading') return { ...base, text: 'Your Heading', size: '28', align: 'left' };
   if (type === 'Text') return { ...base, text: 'Add your text here.' };
   if (type === 'Button') return { ...base, label: 'Click Me', link: '' };
@@ -53,7 +50,6 @@ function renderCanvas() {
     const item = document.createElement('div');
     item.className = 'canvas-item';
     if (index === selectedIndex) item.classList.add('selected');
-    item.dataset.index = String(index);
 
     const typeLabel = document.createElement('span');
     typeLabel.className = 'component-type';
@@ -110,7 +106,7 @@ function inputField(labelText, value, handler, options = {}) {
   if (options.placeholder) input.placeholder = options.placeholder;
   if (options.min) input.min = options.min;
   if (options.max) input.max = options.max;
-  input.addEventListener(options.event || 'input', (event) => handler(event.target.value));
+  input.addEventListener('input', (event) => handler(event.target.value));
   wrap.appendChild(input);
   return wrap;
 }
@@ -136,7 +132,6 @@ function selectField(labelText, value, choices, handler) {
 
 function renderInspector() {
   inspectorContent.innerHTML = '';
-
   if (selectedIndex < 0 || !components[selectedIndex]) {
     selectionLabel.textContent = 'Nothing selected';
     const empty = document.createElement('p');
@@ -151,7 +146,7 @@ function renderInspector() {
 
   const helper = document.createElement('p');
   helper.className = 'helper';
-  helper.textContent = 'Changes stay in this project and are saved to Supabase when you press Save.';
+  helper.textContent = 'Changes are saved to Supabase when you press Save.';
   inspectorContent.appendChild(helper);
 
   const setValue = (key, value) => {
@@ -166,24 +161,14 @@ function renderInspector() {
     row.appendChild(inputField('Size (px)', component.size, (value) => setValue('size', value), { type: 'number', min: '12', max: '96' }));
     row.appendChild(selectField('Alignment', component.align || 'left', [['left','Left'],['center','Center'],['right','Right']], (value) => setValue('align', value)));
     inspectorContent.appendChild(row);
-  }
-
-  if (component.type === 'Text') {
+  } else if (component.type === 'Text') {
     inspectorContent.appendChild(inputField('Text', component.text, (value) => setValue('text', value), { textarea: true }));
-  }
-
-  if (component.type === 'Button') {
+  } else if (component.type === 'Button') {
     inspectorContent.appendChild(inputField('Label', component.label, (value) => setValue('label', value)));
     inspectorContent.appendChild(inputField('Link', component.link, (value) => setValue('link', value), { placeholder: 'https://example.com' }));
-  }
-
-  if (component.type === 'Image') {
+  } else if (component.type === 'Image') {
     inspectorContent.appendChild(inputField('Image URL', component.url, (value) => setValue('url', value), { placeholder: 'https://...' }));
     inspectorContent.appendChild(inputField('Alt text', component.alt, (value) => setValue('alt', value)));
-    const helperUrl = document.createElement('p');
-    helperUrl.className = 'helper';
-    helperUrl.textContent = 'Use a public image URL for now. Supabase Storage can be added later.';
-    inspectorContent.appendChild(helperUrl);
   }
 
   const deleteButton = document.createElement('button');
@@ -207,16 +192,11 @@ function selectComponent(index) {
 }
 
 async function loadProject() {
-  if (!projectId) {
-    showStatus('Missing project');
-    buttons.forEach((button) => { button.disabled = true; });
-    saveButton.disabled = true;
-    return;
-  }
+  if (!projectId) throw new Error('Missing project');
 
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  if (!userData.user) {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
+  if (!authData.user) {
     window.location.replace('auth/sign-in.html');
     return;
   }
@@ -225,10 +205,11 @@ async function loadProject() {
     .from('projects')
     .select('id,name,app_definition')
     .eq('id', projectId)
-    .single();
+    .eq('user_id', authData.user.id)
+    .maybeSingle();
 
   if (error) throw error;
-  if (!project) throw new Error('Project not found');
+  if (!project) throw new Error('Project not found or access denied');
 
   title.textContent = `${project.name || 'Untitled App'} Builder`;
   components = normalizeComponents(project.app_definition?.componentsList || []);
@@ -237,13 +218,6 @@ async function loadProject() {
   showStatus('Project loaded');
   isReady = true;
 }
-
-loadProject().catch((error) => {
-  console.error(error);
-  showStatus(`Load failed: ${error.code || error.message || 'error'}`);
-  buttons.forEach((button) => { button.disabled = true; });
-  saveButton.disabled = true;
-});
 
 buttons.forEach((button) => {
   button.addEventListener('click', () => {
@@ -258,26 +232,36 @@ buttons.forEach((button) => {
 
 saveButton.addEventListener('click', async () => {
   if (!isReady || !projectId) return;
-
   saveButton.disabled = true;
   showStatus('Saving...');
 
   try {
-    const { error } = await supabase
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Not signed in');
+
+    const appDefinition = {
+      pages: {},
+      components: {},
+      componentsList: components,
+      workflows: {},
+      settings: {}
+    };
+
+    const { data, error } = await supabase
       .from('projects')
       .update({
-        app_definition: {
-          pages: {},
-          components: {},
-          componentsList: components,
-          workflows: {},
-          settings: {}
-        },
+        app_definition: appDefinition,
         updated_at: new Date().toISOString()
       })
-      .eq('id', projectId);
+      .eq('id', projectId)
+      .eq('user_id', authData.user.id)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) throw new Error('No project was updated. Check project ownership and RLS policies.');
+
     showStatus('Saved to Supabase');
   } catch (error) {
     console.error(error);
@@ -289,4 +273,11 @@ saveButton.addEventListener('click', async () => {
 
 previewButton.addEventListener('click', () => {
   window.location.href = `preview.html?projectId=${encodeURIComponent(projectId || '')}`;
+});
+
+loadProject().catch((error) => {
+  console.error(error);
+  showStatus(`Load failed: ${error.code || error.message || 'error'}`);
+  buttons.forEach((button) => { button.disabled = true; });
+  saveButton.disabled = true;
 });
