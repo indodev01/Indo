@@ -1,0 +1,10 @@
+.utility-link {
+  margin: 16px 0 0;
+  font-size: 14px;
+}
+
+.utility-link a {
+  color: #3348c8;
+  font-weight: 700;
+  text-decoration: none;
+}
