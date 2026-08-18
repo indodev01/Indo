@@ -13,7 +13,7 @@ const inspector = $('inspectorContent');
 const selectionLabel = $('selectionLabel');
 const pageList = $('pageList');
 const componentList = $('componentList');
-const projectId = new URLSearchParams(window.location.search).get('projectId');
+const projectId = new URLSearchParams(location.search).get('projectId');
 
 let currentUser = null;
 let project = null;
@@ -21,91 +21,72 @@ let definition = makeEmptyDefinition();
 let currentPageId = 'home';
 let components = [];
 let selectedIndex = -1;
-let dragIndex = -1;
 let isReady = false;
+let dragIndex = -1;
+let selectedHeaderDesign = null;
 
-const TYPES = [
-  'Heading','Text','Button','Image','Video','Input','Card','Container','Icon','List','Menu','Divider','Spacer',
-  'Navbar','Footer','Form','Checkbox','Radio','Select','Tabs','Accordion','Modal','Table','Search','Avatar','Badge',
-  'Progress','Slider','Date Picker','Map','YouTube','Audio Player','Gallery','Carousel','Login','Signup','Pricing',
-  'Testimonials','Social Links'
+const TYPES = ['Header','Navigation','Hero Section','Buttons','Cards','Images','Videos','Music Player','Forms','Footer / Bottom','Others'];
+const ICONS = ['≡','☰','◒','↗','▣','▧','▶','♫','▤','⌄','✦'];
+
+const HEADER_DESIGNS = [
+  { id:'left-menu-right', name:'Brand Left • Menu Right', brandSide:'left', menuSide:'right', bg:'#ffffff', color:'#111827' },
+  { id:'left-menu-left', name:'Menu Left • Brand Left', brandSide:'left', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'center-menu-right', name:'Centered Brand • Menu Right', brandSide:'center', menuSide:'right', bg:'#ffffff', color:'#111827' },
+  { id:'menu-left-center', name:'Menu Left • Center Brand', brandSide:'center', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'dark-left-right', name:'Dark • Brand Left', brandSide:'left', menuSide:'right', bg:'#0f172a', color:'#ffffff' },
+  { id:'minimal-center', name:'Minimal Center', brandSide:'center', menuSide:'right', bg:'#f8fafc', color:'#0f172a' },
+  { id:'right-brand', name:'Brand Right • Menu Left', brandSide:'right', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'soft-purple', name:'Soft Purple', brandSide:'left', menuSide:'right', bg:'#f5f3ff', color:'#312e81' }
 ];
 
-const ICONS = ['H','T','↗','▧','▶','▱','▣','□','✦','☷','☰','━','↕','⌂','▰','▤','☑','◉','▾','▤','⌄','▣','▦','⌕','●','◆','▰','◒','▤','⌁','▶','♫','▧','◀','⇥','⇥','$','❝','◎'];
+function showStatus(text) { status.textContent = text; }
+function currentPage() { return definition.pages[currentPageId] || null; }
 
-const DEFAULTS = {
-  Heading: { text: 'Your Heading', size: 28, weight: '700', color: '#f7f8ff', align: 'left' },
-  Text: { text: 'Add your text here.', size: 15, color: '#a8b2c5' },
-  Button: { label: 'Get Started', link: '', background: '#7c3aed', color: '#ffffff', radius: 10 },
-  Image: { url: '', alt: 'Image', radius: 10 },
-  Video: { url: '', title: 'Video Player', controls: true, autoplay: false },
-  Input: { label: 'Your Name', placeholder: 'Enter your name', name: 'name', inputType: 'text', required: false },
-  Card: { title: 'Card Title', text: 'Card content', background: '#111827', radius: 14 },
-  Container: { direction: 'column', gap: 12, background: '#0f172a', padding: 16, radius: 12 },
-  Icon: { name: '★', size: 28, color: '#a855f7' },
-  List: { title: 'List', items: ['Item one', 'Item two', 'Item three'], bullet: true },
-  Menu: { items: ['Home', 'About', 'Contact'], direction: 'row', gap: 18 },
-  Divider: { color: '#293346', thickness: 1 },
-  Spacer: { height: 24 },
-  Navbar: { brand: 'My App', items: ['Home', 'About', 'Contact'] },
-  Footer: { text: '© 2026 My App', links: ['Privacy', 'Terms'] },
-  Form: { title: 'Contact us', submit: 'Submit', fields: ['Name', 'Email', 'Message'] },
-  Checkbox: { label: 'I agree', checked: false },
-  Radio: { label: 'Option A', name: 'choice', value: 'a' },
-  Select: { label: 'Choose one', options: ['Option 1', 'Option 2', 'Option 3'] },
-  Tabs: { tabs: ['Overview', 'Features', 'Pricing'], active: 0 },
-  Accordion: { items: [['Question 1', 'Answer 1'], ['Question 2', 'Answer 2']] },
-  Modal: { title: 'Modal title', text: 'Modal content', button: 'Open Modal' },
-  Table: { headers: ['Name', 'Status'], rows: [['Example', 'Active'], ['Demo', 'Pending']] },
-  Search: { placeholder: 'Search...', value: '' },
-  Avatar: { url: '', name: 'User' },
-  Badge: { text: 'New', background: '#7c3aed', color: '#fff' },
-  Progress: { value: 65, max: 100 },
-  Slider: { value: 50, min: 0, max: 100, step: 1 },
-  'Date Picker': { label: 'Select date', value: '' },
-  Map: { address: 'Bengaluru, India', lat: 12.9716, lng: 77.5946 },
-  YouTube: { url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', title: 'YouTube video' },
-  'Audio Player': { url: '', title: 'Audio' },
-  Gallery: { images: [], columns: 3 },
-  Carousel: { items: ['Slide 1', 'Slide 2', 'Slide 3'], active: 0 },
-  Login: { title: 'Welcome back', button: 'Sign in' },
-  Signup: { title: 'Create account', button: 'Create account' },
-  Pricing: { title: 'Pro', price: '₹999', period: '/month', features: ['Feature one', 'Feature two', 'Feature three'], button: 'Choose plan' },
-  Testimonials: { quote: 'Great product!', author: 'Happy customer' },
-  'Social Links': { links: ['Instagram', 'YouTube', 'X', 'LinkedIn'] }
+function deepClone(value) { return JSON.parse(JSON.stringify(value)); }
+
+function makeHeaderComponent(designId = 'left-menu-right') {
+  const design = HEADER_DESIGNS.find((item) => item.id === designId) || HEADER_DESIGNS[0];
+  const id = `header-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+  const pageIds = Object.keys(definition.pages);
+  return {
+    id,
+    type: 'Header',
+    props: {
+      designId: design.id,
+      title: project?.name || 'My App',
+      fontFamily: 'Inter',
+      fontSize: 20,
+      fontWeight: '800',
+      titleColor: design.color,
+      menuIcon: '☰',
+      menuIconColor: design.color,
+      menuIconSize: 22,
+      menuBackground: design.bg,
+      menuPanelBackground: '#0f172a',
+      menuPanelColor: '#ffffff',
+      menuSide: design.menuSide,
+      brandSide: design.brandSide,
+      items: pageIds.length ? pageIds : ['home']
+    }
+  };
+}
+
+const simpleDefaults = {
+  Navigation:{items:['Home','Music','Search'],icon:'☰'},
+  'Hero Section':{title:'Build something amazing',text:'Your hero section starts here.',button:'Get Started'},
+  Buttons:{label:'Get Started',background:'#7c3aed',color:'#fff',radius:10},
+  Cards:{title:'Card title',text:'Card content',background:'#111827',color:'#fff'},
+  Images:{url:'',alt:'Image'},
+  Videos:{url:'',controls:true,autoplay:false},
+  'Music Player':{title:'Now Playing',artist:'Artist',src:''},
+  Forms:{title:'Contact us',fields:['Name','Email','Message']},
+  'Footer / Bottom':{items:['Home','Music','Search','Profile']},
+  Others:{text:'Custom block'}
 };
 
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-function makeComponent(type) {
-  const slug = type.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'component';
-  return { id: `${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type, props: clone(DEFAULTS[type] || {}) };
-}
-
-function showStatus(message) {
-  if (status) status.textContent = message;
-}
-
-function currentPage() {
-  return definition.pages[currentPageId] || null;
-}
-
-function setupComponents() {
-  if (!componentList) return;
-  componentList.innerHTML = '';
-  TYPES.forEach((type, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'component-button';
-    button.dataset.component = type;
-    const icon = document.createElement('span');
-    icon.textContent = ICONS[index] || '•';
-    button.append(icon, document.createTextNode(type));
-    button.addEventListener('click', () => addComponent(type));
-    componentList.appendChild(button);
-  });
+function makeGenericComponent(type) {
+  const id = `${type.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+  return { id, type, props: deepClone(simpleDefaults[type] || { text:type }) };
 }
 
 function renderPages() {
@@ -116,6 +97,7 @@ function renderPages() {
     button.className = `page-button${id === currentPageId ? ' active' : ''}`;
     button.textContent = page.name;
     button.addEventListener('click', () => switchPage(id));
+    button.addEventListener('dblclick', () => renamePage(id));
     pageList.appendChild(button);
   });
 }
@@ -133,221 +115,173 @@ function switchPage(id) {
   showStatus(`Editing ${definition.pages[id].name}`);
 }
 
+function renamePage(id) {
+  const page = definition.pages[id];
+  if (!page) return;
+  const next = window.prompt('Page name', page.name);
+  if (!next || !next.trim()) return;
+  page.name = next.trim();
+  page.slug = next.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || id;
+  Object.values(definition.pages).forEach((p) => { p.settings = { ...(p.settings || {}), title: p.name }; });
+  renderPages();
+  renderCanvas();
+}
+
 function addPage() {
   const input = $('pageNameInput');
   const name = input.value.trim();
-  if (!name) {
-    $('pageDialogMessage').textContent = 'Enter a page name.';
-    return;
-  }
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'page';
+  if (!name) { $('pageDialogMessage').textContent = 'Enter a page name.'; return; }
+  let base = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'page';
   let id = base;
   let n = 2;
   while (definition.pages[id]) id = `${base}-${n++}`;
   if (currentPage()) currentPage().components = normalizeComponents(components);
-  definition.pages[id] = {
-    id,
-    name,
-    slug: id,
-    components: [],
-    styles: { background: '#ffffff', padding: '16px' },
-    settings: { title: name }
-  };
+  definition.pages[id] = { id, name, slug:id, components:[], styles:{background:'#ffffff',padding:'16px'}, settings:{title:name} };
+  Object.values(definition.pages).forEach((page) => {
+    page.components = normalizeComponents(page.components || []);
+    page.components.forEach((component) => {
+      if (component.type === 'Header') {
+        const items = Array.isArray(component.props?.items) ? component.props.items : [];
+        if (!items.includes(id)) component.props.items = [...items, id];
+      }
+    });
+  });
   $('pageDialog').hidden = true;
+  input.value = '';
+  renderPages();
   switchPage(id);
 }
 
-function addComponent(type) {
+function openPageDialog() {
+  $('pageNameInput').value = '';
+  $('pageDialogMessage').textContent = '';
+  $('pageDialog').hidden = false;
+  setTimeout(() => $('pageNameInput').focus(), 0);
+}
+
+function setupComponents() {
+  componentList.innerHTML = '';
+  TYPES.forEach((type, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'component-button';
+    button.dataset.component = type;
+    const icon = document.createElement('span');
+    icon.textContent = ICONS[index] || '•';
+    button.append(icon, document.createTextNode(` ${type}`));
+    if (type === 'Header') {
+      button.classList.add('component-special');
+      button.addEventListener('click', openHeaderLibrary);
+    } else {
+      button.addEventListener('click', () => addGeneric(type));
+    }
+    componentList.appendChild(button);
+  });
+  const count = document.querySelector('.component-count');
+  if (count) count.textContent = String(TYPES.length);
+}
+
+function addGeneric(type) {
   if (!isReady) return;
-  components.push(makeComponent(type));
+  components.push(makeGenericComponent(type));
   selectedIndex = components.length - 1;
   renderCanvas();
   renderInspector();
-  showStatus(`${type} added`);
+  showStatus(`${type} added to ${currentPage()?.name || 'page'}`);
 }
 
-function style(element, styles) {
-  Object.assign(element.style, styles);
+function ensureHeaderStyles(component) {
+  const p = component.props || {};
+  const d = HEADER_DESIGNS.find((item) => item.id === p.designId) || HEADER_DESIGNS[0];
+  return { ...d, ...p };
 }
 
-function addText(parent, value) {
-  const node = document.createElement('span');
-  node.textContent = value ?? '';
-  parent.appendChild(node);
-  return node;
+function createHeaderElement(item, component) {
+  const p = ensureHeaderStyles(component);
+  const wrap = document.createElement('div');
+  wrap.className = `app-header ${p.brandSide}-brand menu-${p.menuSide}`;
+  wrap.style.background = p.bg || '#fff';
+  wrap.style.color = p.color || '#111827';
+  wrap.dataset.headerComponent = component.id;
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'header-title-wrap';
+  const titleEl = document.createElement('span');
+  titleEl.className = 'header-title-edit';
+  titleEl.textContent = p.title || 'My App';
+  titleEl.style.fontFamily = p.fontFamily || 'Inter';
+  titleEl.style.fontSize = `${Number(p.fontSize) || 20}px`;
+  titleEl.style.fontWeight = p.fontWeight || '800';
+  titleEl.style.color = p.titleColor || p.color || '#111827';
+  titleEl.title = 'Double-click to edit';
+  titleEl.addEventListener('dblclick', (event) => { event.stopPropagation(); openHeaderTitleEditor(component); });
+  titleWrap.appendChild(titleEl);
+
+  const menuButton = document.createElement('button');
+  menuButton.type = 'button';
+  menuButton.className = 'header-menu-toggle';
+  menuButton.textContent = p.menuIcon || '☰';
+  menuButton.style.color = p.menuIconColor || p.color || '#111827';
+  menuButton.style.fontSize = `${Number(p.menuIconSize) || 22}px`;
+  menuButton.style.background = p.menuBackground || 'rgba(16,24,40,.04)';
+  menuButton.title = 'Click to open menu • Double-click to edit menu';
+  menuButton.addEventListener('click', (event) => { event.stopPropagation(); toggleHeaderMenu(wrap, component); });
+  menuButton.addEventListener('dblclick', (event) => { event.stopPropagation(); openHeaderMenuEditor(component); });
+
+  if (p.brandSide === 'center') wrap.append(menuButton, titleWrap);
+  else if (p.menuSide === 'left') wrap.append(menuButton, titleWrap);
+  else wrap.append(titleWrap, menuButton);
+
+  item.appendChild(wrap);
+}
+
+function toggleHeaderMenu(wrap, component) {
+  const old = wrap.querySelector('.header-menu-panel');
+  if (old) { old.remove(); return; }
+  const p = ensureHeaderStyles(component);
+  const panel = document.createElement('div');
+  panel.className = `header-menu-panel ${p.menuSide === 'left' ? 'left' : ''}`;
+  const ids = Array.isArray(p.items) ? p.items : Object.keys(definition.pages);
+  ids.forEach((pageId) => {
+    const page = definition.pages[pageId];
+    if (!page) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'header-menu-item';
+    button.textContent = page.name;
+    button.addEventListener('click', () => { panel.remove(); switchPage(pageId); });
+    button.addEventListener('dblclick', (event) => { event.stopPropagation(); panel.remove(); renamePage(pageId); });
+    panel.appendChild(button);
+  });
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'header-menu-add';
+  add.textContent = '+ Add Page';
+  add.addEventListener('click', () => { panel.remove(); openPageDialog(); });
+  panel.appendChild(add);
+  wrap.appendChild(panel);
+}
+
+function renderGeneric(item, component) {
+  const p = component.props || {};
+  const create = (tag, value) => { const el = document.createElement(tag); el.textContent = value || ''; return el; };
+  if (component.type === 'Navigation') {
+    const nav = document.createElement('nav'); nav.style.display = 'flex'; nav.style.gap = '14px';
+    (p.items || []).forEach((value) => { const b = create('button', value); b.type='button'; b.style.background='transparent'; b.style.border='0'; b.style.color='#d8e0ed'; b.onclick=()=>{ const page = Object.values(definition.pages).find((x)=>x.name.toLowerCase()===String(value).toLowerCase()); if(page) switchPage(page.id); }; nav.appendChild(b); }); item.appendChild(nav);
+  } else if (component.type === 'Hero Section') { const box = create('div'); box.style.padding='40px 24px'; box.style.borderRadius='16px'; box.style.background='linear-gradient(135deg,#111827,#1f2937)'; const h=create('h2',p.title); const t=create('p',p.text); const b=create('button',p.button); b.style.cssText='padding:10px 14px;border:0;border-radius:10px;background:#7c3aed;color:#fff;font-weight:800;'; box.append(h,t,b); item.appendChild(box);
+  } else if (component.type === 'Buttons') { const b=create('button',p.label); b.style.cssText=`padding:10px 16px;border:0;border-radius:${Number(p.radius)||10}px;background:${p.background||'#7c3aed'};color:${p.color||'#fff'};font-weight:800`; item.appendChild(b);
+  } else if (component.type === 'Cards') { const c=create('div'); c.style.cssText='padding:16px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:#111827;color:#fff;'; c.append(create('h3',p.title),create('p',p.text)); item.appendChild(c);
+  } else if (component.type === 'Images') { const image=p.url?document.createElement('img'):create('div','Image URL not set'); if(p.url){image.src=p.url;image.alt=p.alt||'Image';image.style.maxWidth='100%';} item.appendChild(image);
+  } else if (component.type === 'Videos') { const v=document.createElement('video'); v.controls=p.controls!==false; v.autoplay=Boolean(p.autoplay); v.src=p.url||''; v.style.width='100%'; item.appendChild(v);
+  } else if (component.type === 'Music Player') { const audio=document.createElement('audio'); audio.controls=true; audio.src=p.src||''; item.append(create('strong',p.title),audio);
+  } else if (component.type === 'Forms') { const form=document.createElement('div'); form.appendChild(create('h3',p.title)); (p.fields||[]).forEach((f)=>{const input=document.createElement('input');input.placeholder=f;input.style.cssText='display:block;width:100%;margin:7px 0;padding:10px;border-radius:8px;border:1px solid #d1d5db;';form.appendChild(input);}); item.appendChild(form);
+  } else if (component.type === 'Footer / Bottom') { const nav=document.createElement('nav');nav.style.cssText='display:flex;justify-content:space-around;gap:10px;padding:14px;border-top:1px solid rgba(255,255,255,.1);';(p.items||[]).forEach((x)=>{const b=create('button',x);b.type='button';b.style.cssText='border:0;background:transparent;color:#cbd5e1';nav.appendChild(b);});item.appendChild(nav);
+  } else if (component.type === 'Others') { item.appendChild(create('div',p.text)); }
 }
 
 function renderComponent(item, component) {
-  const p = component.props || {};
-  let el = null;
-
-  const mark = document.createElement('span');
-  mark.className = 'component-type';
-  mark.textContent = component.type;
-  item.appendChild(mark);
-
-  if (component.type === 'Heading') {
-    el = document.createElement('h3');
-    el.textContent = p.text || 'Your Heading';
-    style(el, { margin: '0', fontSize: `${Number(p.size) || 28}px`, fontWeight: p.weight || '700', color: p.color || '#fff', textAlign: p.align || 'left' });
-    item.appendChild(el);
-  } else if (component.type === 'Text') {
-    el = document.createElement('p');
-    el.textContent = p.text || 'Add your text here.';
-    style(el, { margin: '0', fontSize: `${Number(p.size) || 15}px`, color: p.color || '#a8b2c5', lineHeight: '1.6' });
-    item.appendChild(el);
-  } else if (component.type === 'Button') {
-    el = document.createElement('button');
-    el.type = 'button';
-    el.textContent = p.label || 'Get Started';
-    style(el, { padding: '10px 14px', border: '0', borderRadius: `${Number(p.radius) || 10}px`, background: p.background || '#7c3aed', color: p.color || '#fff', fontWeight: '800', cursor: 'pointer' });
-    if (p.link) el.addEventListener('click', () => { window.open(p.link, '_blank', 'noopener'); });
-    item.appendChild(el);
-  } else if (component.type === 'Image') {
-    if (p.url) {
-      el = document.createElement('img');
-      el.src = p.url;
-      el.alt = p.alt || 'Image';
-      style(el, { maxWidth: '100%', maxHeight: '320px', objectFit: 'cover', borderRadius: `${Number(p.radius) || 10}px` });
-    } else {
-      el = document.createElement('div');
-      el.textContent = 'Image URL not set';
-      style(el, { padding: '30px', border: '1px dashed #334155', color: '#7c8799', textAlign: 'center' });
-    }
-    item.appendChild(el);
-  } else if (component.type === 'Video') {
-    if (p.url) {
-      el = document.createElement('video');
-      el.controls = p.controls !== false;
-      el.autoplay = Boolean(p.autoplay);
-      el.src = p.url;
-      style(el, { width: '100%', maxHeight: '320px', borderRadius: '10px', background: '#000' });
-    } else {
-      el = document.createElement('div');
-      el.textContent = 'Video URL not set';
-      style(el, { minHeight: '180px', display: 'grid', placeItems: 'center', background: '#05070d', color: '#7c8799' });
-    }
-    item.appendChild(el);
-  } else if (component.type === 'YouTube') {
-    el = document.createElement('iframe');
-    el.src = p.url || '';
-    el.title = p.title || 'YouTube video';
-    el.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
-    el.allowFullscreen = true;
-    style(el, { width: '100%', minHeight: '220px', border: '0', borderRadius: '10px', background: '#000' });
-    item.appendChild(el);
-  } else if (component.type === 'Input') {
-    const label = document.createElement('label');
-    label.textContent = p.label || 'Input';
-    style(label, { display: 'block', color: '#cbd5e1', fontWeight: '700' });
-    const input = document.createElement('input');
-    input.type = p.inputType || 'text';
-    input.placeholder = p.placeholder || '';
-    input.disabled = true;
-    style(input, { width: '100%', padding: '11px', marginTop: '7px', border: '1px solid #334155', borderRadius: '9px', background: '#0b1220', color: '#fff' });
-    item.append(label, input);
-  } else if (component.type === 'Card') {
-    el = document.createElement('div');
-    style(el, { background: p.background || '#111827', border: '1px solid #293346', borderRadius: `${Number(p.radius) || 14}px`, padding: '16px' });
-    const h = document.createElement('strong'); h.textContent = p.title || 'Card Title';
-    const q = document.createElement('p'); q.textContent = p.text || 'Card content'; style(q, { color: '#9ca8bb', marginBottom: '0' });
-    el.append(h, q); item.appendChild(el);
-  } else if (component.type === 'Container') {
-    el = document.createElement('div');
-    addText(el, 'Container');
-    style(el, { padding: `${Number(p.padding) || 16}px`, background: p.background || '#0f172a', border: '1px dashed #8b7cf6', borderRadius: `${Number(p.radius) || 12}px`, display: 'flex', flexDirection: p.direction === 'row' ? 'row' : 'column', gap: `${Number(p.gap) || 12}px`, color: '#94a3b8' });
-    item.appendChild(el);
-  } else if (component.type === 'Icon') {
-    el = document.createElement('span');
-    el.textContent = p.name || '★';
-    style(el, { fontSize: `${Number(p.size) || 28}px`, color: p.color || '#a855f7' });
-    item.appendChild(el);
-  } else if (component.type === 'List') {
-    const heading = document.createElement('strong'); heading.textContent = p.title || 'List';
-    const list = document.createElement(p.bullet === false ? 'div' : 'ul');
-    (p.items || []).forEach((value) => { const li = document.createElement(p.bullet === false ? 'div' : 'li'); li.textContent = value; list.appendChild(li); });
-    item.append(heading, list);
-  } else if (component.type === 'Menu' || component.type === 'Navbar' || component.type === 'Social Links') {
-    el = document.createElement('nav');
-    style(el, { display: 'flex', gap: `${Number(p.gap) || 18}px`, flexWrap: 'wrap', alignItems: 'center', padding: '10px 2px', borderBottom: '1px solid #293346' });
-    if (component.type === 'Navbar') { const brand = document.createElement('strong'); brand.textContent = p.brand || 'My App'; el.appendChild(brand); }
-    const items = p.items || p.links || [];
-    items.forEach((value) => { const link = document.createElement('span'); link.textContent = value; style(link, { color: '#aeb8ca', fontWeight: '700' }); el.appendChild(link); });
-    item.appendChild(el);
-  } else if (component.type === 'Divider') {
-    el = document.createElement('div'); style(el, { height: `${Math.max(1, Number(p.thickness) || 1)}px`, background: p.color || '#293346' }); item.appendChild(el);
-  } else if (component.type === 'Spacer') {
-    el = document.createElement('div'); style(el, { height: `${Math.max(4, Number(p.height) || 24)}px` }); item.appendChild(el);
-  } else if (component.type === 'Footer') {
-    el = document.createElement('footer');
-    style(el, { padding: '18px', borderTop: '1px solid #293346', color: '#94a3b8' });
-    addText(el, p.text || '© 2026 My App');
-    item.appendChild(el);
-  } else if (component.type === 'Form' || component.type === 'Login' || component.type === 'Signup') {
-    el = document.createElement('form');
-    el.addEventListener('submit', (event) => event.preventDefault());
-    const h = document.createElement('h3'); h.textContent = p.title || 'Form'; el.appendChild(h);
-    const fields = component.type === 'Signup' ? ['Name', 'Email', 'Password'] : component.type === 'Login' ? ['Email', 'Password'] : (p.fields || ['Name', 'Email', 'Message']);
-    fields.forEach((fieldName) => { const input = document.createElement(fieldName === 'Message' ? 'textarea' : 'input'); input.placeholder = fieldName; style(input, { display: 'block', width: '100%', padding: '10px', margin: '7px 0', border: '1px solid #334155', borderRadius: '8px', background: '#0b1220', color: '#fff' }); el.appendChild(input); });
-    const submit = document.createElement('button'); submit.type = 'submit'; submit.textContent = p.button || p.submit || 'Submit'; style(submit, { padding: '10px 14px', border: '0', borderRadius: '8px', background: '#7c3aed', color: '#fff', fontWeight: '800' }); el.appendChild(submit);
-    item.appendChild(el);
-  } else if (component.type === 'Checkbox' || component.type === 'Radio') {
-    el = document.createElement('label');
-    const input = document.createElement('input'); input.type = component.type === 'Checkbox' ? 'checkbox' : 'radio'; input.checked = Boolean(p.checked); if (component.type === 'Radio') { input.name = p.name || 'choice'; input.value = p.value || 'a'; }
-    el.append(input, document.createTextNode(` ${p.label || 'Option'}`)); item.appendChild(el);
-  } else if (component.type === 'Select') {
-    const label = document.createElement('label'); label.textContent = p.label || 'Choose one'; style(label, { display: 'grid', gap: '6px' });
-    const select = document.createElement('select'); (p.options || []).forEach((value) => { const option = document.createElement('option'); option.textContent = value; select.appendChild(option); }); style(select, { padding: '10px', background: '#0b1220', color: '#fff', border: '1px solid #334155', borderRadius: '8px' }); label.appendChild(select); item.appendChild(label);
-  } else if (component.type === 'Tabs') {
-    el = document.createElement('div'); const nav = document.createElement('div'); style(nav, { display: 'flex', gap: '6px', flexWrap: 'wrap' });
-    (p.tabs || []).forEach((tab, index) => { const button = document.createElement('button'); button.type = 'button'; button.textContent = tab; if (index === Number(p.active || 0)) button.classList.add('active'); button.addEventListener('click', () => { p.active = index; renderCanvas(); }); nav.appendChild(button); });
-    const body = document.createElement('div'); body.textContent = `Tab ${(Number(p.active) || 0) + 1} content`; style(body, { padding: '12px', color: '#94a3b8' }); el.append(nav, body); item.appendChild(el);
-  } else if (component.type === 'Accordion') {
-    el = document.createElement('div'); (p.items || []).forEach((pair) => { const details = document.createElement('details'); const summary = document.createElement('summary'); summary.textContent = pair[0]; const answer = document.createElement('p'); answer.textContent = pair[1]; details.append(summary, answer); el.appendChild(details); }); item.appendChild(el);
-  } else if (component.type === 'Modal') {
-    el = document.createElement('button'); el.type = 'button'; el.textContent = p.button || 'Open Modal'; el.addEventListener('click', () => window.alert(`${p.title || 'Modal'}\n\n${p.text || ''}`)); item.appendChild(el);
-  } else if (component.type === 'Table') {
-    el = document.createElement('table'); el.border = '1'; style(el, { width: '100%', borderCollapse: 'collapse' });
-    const head = document.createElement('tr'); (p.headers || []).forEach((value) => { const th = document.createElement('th'); th.textContent = value; head.appendChild(th); }); el.appendChild(head);
-    (p.rows || []).forEach((row) => { const tr = document.createElement('tr'); row.forEach((value) => { const td = document.createElement('td'); td.textContent = value; tr.appendChild(td); }); el.appendChild(tr); });
-    item.appendChild(el);
-  } else if (component.type === 'Search') {
-    el = document.createElement('input'); el.placeholder = p.placeholder || 'Search...'; el.value = p.value || ''; style(el, { width: '100%', padding: '10px', background: '#0b1220', color: '#fff', border: '1px solid #334155', borderRadius: '8px' }); el.addEventListener('input', (event) => { p.value = event.target.value; }); item.appendChild(el);
-  } else if (component.type === 'Avatar') {
-    el = p.url ? document.createElement('img') : document.createElement('div');
-    if (p.url) el.src = p.url; else el.textContent = (p.name || 'U').slice(0, 1).toUpperCase();
-    style(el, { width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', display: 'grid', placeItems: 'center', background: '#1e293b', color: '#fff' }); item.appendChild(el);
-  } else if (component.type === 'Badge') {
-    el = document.createElement('span'); el.textContent = p.text || 'New'; style(el, { display: 'inline-block', padding: '5px 9px', borderRadius: '999px', background: p.background || '#7c3aed', color: p.color || '#fff', fontWeight: '800' }); item.appendChild(el);
-  } else if (component.type === 'Progress') {
-    el = document.createElement('progress'); el.value = Number(p.value) || 0; el.max = Number(p.max) || 100; style(el, { width: '100%' }); item.appendChild(el);
-  } else if (component.type === 'Slider') {
-    el = document.createElement('input'); el.type = 'range'; el.min = p.min ?? 0; el.max = p.max ?? 100; el.step = p.step ?? 1; el.value = p.value ?? 50; style(el, { width: '100%' }); item.appendChild(el);
-  } else if (component.type === 'Date Picker') {
-    const label = document.createElement('label'); label.textContent = p.label || 'Select date'; style(label, { display: 'grid', gap: '6px' }); const date = document.createElement('input'); date.type = 'date'; date.value = p.value || ''; label.appendChild(date); item.appendChild(label);
-  } else if (component.type === 'Map') {
-    el = document.createElement('div'); el.textContent = `📍 ${p.address || 'Map location'}`; style(el, { minHeight: '140px', display: 'grid', placeItems: 'center', background: '#162033', border: '1px solid #293346', borderRadius: '10px', color: '#cbd5e1' }); item.appendChild(el);
-  } else if (component.type === 'Audio Player') {
-    el = document.createElement('audio'); el.controls = true; if (p.url) el.src = p.url; style(el, { width: '100%' }); item.appendChild(el);
-  } else if (component.type === 'Gallery') {
-    el = document.createElement('div'); style(el, { display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, Number(p.columns) || 3)},1fr)`, gap: '6px' });
-    (p.images || []).forEach((src) => { const image = document.createElement('img'); image.src = src; style(image, { width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '8px' }); el.appendChild(image); });
-    if (!p.images?.length) addText(el, 'Add image URLs in Customize');
-    item.appendChild(el);
-  } else if (component.type === 'Carousel') {
-    el = document.createElement('div'); style(el, { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' });
-    const prev = document.createElement('button'); prev.type = 'button'; prev.textContent = '‹';
-    const label = document.createElement('strong'); label.textContent = (p.items || ['Slide 1'])[Number(p.active) || 0];
-    const next = document.createElement('button'); next.type = 'button'; next.textContent = '›';
-    prev.onclick = () => { const len = (p.items || []).length || 1; p.active = ((Number(p.active) || 0) - 1 + len) % len; renderCanvas(); };
-    next.onclick = () => { const len = (p.items || []).length || 1; p.active = ((Number(p.active) || 0) + 1) % len; renderCanvas(); };
-    el.append(prev, label, next); item.appendChild(el);
-  } else if (component.type === 'Pricing') {
-    el = document.createElement('div'); style(el, { padding: '18px', border: '1px solid #293346', borderRadius: '14px', background: '#111827' });
-    const heading = document.createElement('h3'); heading.textContent = p.title || 'Pro'; const price = document.createElement('strong'); price.textContent = `${p.price || '₹999'}${p.period || '/month'}`; const list = document.createElement('ul'); (p.features || []).forEach((f) => { const li = document.createElement('li'); li.textContent = f; list.appendChild(li); }); el.append(heading, price, list); item.appendChild(el);
-  } else if (component.type === 'Testimonials') {
-    el = document.createElement('blockquote'); el.textContent = `“${p.quote || 'Great product!'}” — ${p.author || 'Customer'}`; style(el, { margin: '0', color: '#cbd5e1' }); item.appendChild(el);
-  }
+  item.className = `canvas-item${component.type === 'Header' ? ' canvas-header-component' : ''}`;
+  if (component.type === 'Header') createHeaderElement(item, component); else renderGeneric(item, component);
 }
 
 function renderCanvas() {
@@ -355,12 +289,12 @@ function renderCanvas() {
   emptyState.style.display = components.length ? 'none' : '';
   components.forEach((component, index) => {
     const item = document.createElement('div');
-    item.className = 'canvas-item';
+    renderComponent(item, component);
     item.draggable = true;
+    item.dataset.index = String(index);
     if (index === selectedIndex) item.classList.add('selected');
     item.addEventListener('click', () => selectComponent(index));
-    item.addEventListener('dragstart', () => { dragIndex = index; item.classList.add('dragging'); });
-    item.addEventListener('dragend', () => { dragIndex = -1; item.classList.remove('dragging'); });
+    item.addEventListener('dragstart', () => { dragIndex = index; });
     item.addEventListener('dragover', (event) => event.preventDefault());
     item.addEventListener('drop', (event) => {
       event.preventDefault();
@@ -373,7 +307,6 @@ function renderCanvas() {
       renderCanvas();
       renderInspector();
     });
-    renderComponent(item, component);
     canvas.appendChild(item);
   });
 }
@@ -381,171 +314,172 @@ function renderCanvas() {
 function field(label, value, handler, options = {}) {
   const wrap = document.createElement('div');
   wrap.className = 'inspector-field';
-  const labelEl = document.createElement('label');
-  labelEl.textContent = label;
+  const l = document.createElement('label'); l.textContent = label;
   const input = document.createElement(options.textarea ? 'textarea' : 'input');
   if (options.type) input.type = options.type;
   input.value = value ?? '';
-  if (options.placeholder) input.placeholder = options.placeholder;
   input.addEventListener('input', (event) => handler(event.target.value));
-  wrap.append(labelEl, input);
+  wrap.append(l, input);
   return wrap;
 }
 
 function setProp(key, value) {
   if (!components[selectedIndex]) return;
-  components[selectedIndex].props = { ...components[selectedIndex].props, [key]: value };
+  components[selectedIndex].props = { ...(components[selectedIndex].props || {}), [key]: value };
   renderCanvas();
-}
-
-function parseArrayValue(value, key) {
-  const lines = String(value).split('\n').map((line) => line.trim()).filter(Boolean);
-  if (key === 'items' && lines.every((line) => line.includes(' | '))) return lines.map((line) => line.split(' | '));
-  return lines;
 }
 
 function renderInspector() {
   inspector.innerHTML = '';
   if (selectedIndex < 0 || !components[selectedIndex]) {
     selectionLabel.textContent = 'Nothing selected';
-    const p = document.createElement('p');
-    p.className = 'inspector-empty';
-    p.textContent = 'Select an element to configure it.';
-    inspector.appendChild(p);
-    return;
+    const p = document.createElement('p'); p.className='inspector-empty'; p.textContent='Select an element to configure it.'; inspector.appendChild(p); return;
   }
   const component = components[selectedIndex];
-  const props = component.props || {};
   selectionLabel.textContent = component.type;
-  const helper = document.createElement('p');
-  helper.className = 'helper';
-  helper.textContent = 'Changes update the live canvas. Save when you are ready.';
-  inspector.appendChild(helper);
-
-  Object.entries(props).forEach(([key, value]) => {
-    if (typeof value === 'boolean') {
-      const wrap = document.createElement('div');
-      wrap.className = 'inspector-field';
-      const label = document.createElement('label'); label.textContent = key;
-      const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = value;
-      checkbox.addEventListener('change', () => setProp(key, checkbox.checked));
-      wrap.append(label, checkbox);
-      inspector.appendChild(wrap);
-    } else if (Array.isArray(value)) {
-      const serial = value.map((item) => Array.isArray(item) ? item.join(' | ') : item).join('\n');
-      inspector.appendChild(field(key, serial, (newValue) => setProp(key, parseArrayValue(newValue, key)), { textarea: true }));
-    } else if (typeof value === 'number') {
-      inspector.appendChild(field(key, value, (newValue) => setProp(key, Number(newValue) || 0), { type: 'number' }));
-    } else {
-      inspector.appendChild(field(key, value, (newValue) => setProp(key, newValue), { type: 'text' }));
-    }
-  });
-
-  const deleteButton = document.createElement('button');
-  deleteButton.type = 'button';
-  deleteButton.className = 'danger';
-  deleteButton.textContent = 'Delete Component';
-  deleteButton.addEventListener('click', () => {
-    components.splice(selectedIndex, 1);
-    selectedIndex = -1;
-    renderCanvas();
-    renderInspector();
-    showStatus('Component removed');
-  });
-  inspector.appendChild(deleteButton);
-}
-
-function selectComponent(index) {
-  selectedIndex = index;
-  renderCanvas();
-  renderInspector();
-}
-
-async function loadProject() {
-  if (!projectId) throw new Error('Missing project');
-  const auth = await supabase.auth.getUser();
-  if (auth.error) throw auth.error;
-  currentUser = auth.data.user;
-  if (!currentUser) {
-    window.location.replace('auth/sign-in.html');
-    return;
+  if (component.type === 'Header') {
+    const p = ensureHeaderStyles(component);
+    inspector.appendChild(field('Header title', p.title, (v)=>setProp('title',v)));
+    const select = document.createElement('select');
+    HEADER_DESIGNS.forEach((d)=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name;o.selected=d.id===p.designId;select.appendChild(o);});
+    const w=document.createElement('div');w.className='inspector-field';const l=document.createElement('label');l.textContent='Design';w.append(l,select);inspector.appendChild(w);
+    select.addEventListener('change',(e)=>setProp('designId',e.target.value));
+    inspector.appendChild(field('Font', p.fontFamily, (v)=>setProp('fontFamily',v)));
+    inspector.appendChild(field('Font size', p.fontSize, (v)=>setProp('fontSize',Number(v)||20), {type:'number'}));
+    inspector.appendChild(field('Title color', p.titleColor, (v)=>setProp('titleColor',v)));
+    inspector.appendChild(field('Menu icon', p.menuIcon, (v)=>setProp('menuIcon',v)));
+    inspector.appendChild(field('Menu icon color', p.menuIconColor, (v)=>setProp('menuIconColor',v)));
+    inspector.appendChild(field('Menu icon size', p.menuIconSize, (v)=>setProp('menuIconSize',Number(v)||22), {type:'number'}));
+    const pagesBox=document.createElement('div');pagesBox.className='inspector-field';const label=document.createElement('label');label.textContent='Pages in menu';pagesBox.appendChild(label);const list=document.createElement('div');list.className='header-menu-editor-pages';
+    (p.items||[]).forEach((id)=>{const page=definition.pages[id];if(!page)return;const row=document.createElement('div');row.className='header-page-row';const name=document.createElement('span');name.textContent=page.name;const actions=document.createElement('div');actions.className='header-page-actions';const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove from menu';remove.onclick=()=>{component.props.items=(component.props.items||[]).filter((x)=>x!==id);renderCanvas();renderInspector();};actions.appendChild(remove);row.append(name,actions);list.appendChild(row);});pagesBox.appendChild(list);const add=document.createElement('button');add.type='button';add.className='header-menu-add';add.textContent='+ Add Page';add.onclick=openPageDialog;pagesBox.appendChild(add);inspector.appendChild(pagesBox);
+  } else {
+    const props = component.props || {};
+    Object.entries(props).forEach(([key,value])=>{
+      if (key === 'items' && Array.isArray(value)) inspector.appendChild(field(key,value.join('\n'),(v)=>setProp(key,v.split('\n').map((x)=>x.trim()).filter(Boolean)),{textarea:true}));
+      else if (typeof value === 'boolean') { const w=document.createElement('div');w.className='inspector-field';const l=document.createElement('label');l.textContent=key;const i=document.createElement('input');i.type='checkbox';i.checked=value;i.onchange=()=>setProp(key,i.checked);w.append(l,i);inspector.appendChild(w); }
+      else inspector.appendChild(field(key,value,(v)=>setProp(key,typeof value==='number'?(Number(v)||0):v),{type:typeof value==='number'?'number':'text'}));
+    });
   }
-  const result = await supabase.from('projects')
-    .select('id,user_id,name,description,app_definition,pages,updated_at')
-    .eq('id', projectId)
-    .eq('user_id', currentUser.id)
-    .maybeSingle();
-  if (result.error) throw result.error;
-  if (!result.data) throw new Error('Project not found or access denied');
+  const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Delete Component';del.onclick=()=>{components.splice(selectedIndex,1);selectedIndex=-1;renderCanvas();renderInspector();};inspector.appendChild(del);
+}
 
-  project = result.data;
-  definition = normalizeDefinition(project);
-  title.textContent = `${project.name || 'Untitled App'} Builder`;
-  currentPageId = Object.keys(definition.pages)[0] || 'home';
-  components = normalizeComponents(definition.pages[currentPageId]?.components || []);
-  pageStatus.textContent = definition.pages[currentPageId]?.name || 'Home';
+function selectComponent(index){selectedIndex=index;renderCanvas();renderInspector();}
+
+function injectHeaderLibrary() {
+  if ($('headerLibraryBackdrop')) return;
+  const backdrop=document.createElement('div');backdrop.id='headerLibraryBackdrop';backdrop.className='header-lib-backdrop';backdrop.hidden=true;
+  backdrop.innerHTML=`<div class="header-lib-modal" role="dialog" aria-modal="true"><div class="header-lib-head"><div><h2>Choose a Header Design</h2><p>Select a header layout to add to your app.</p></div><button type="button" class="header-lib-close" data-header-lib-close>×</button></div><div class="header-design-grid" id="headerDesignGrid"></div><div class="header-lib-foot"><button type="button" class="header-lib-cancel" data-header-lib-cancel>Cancel</button><button type="button" class="header-lib-add" data-header-lib-add>Add to App</button></div></div>`;
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click',(e)=>{if(e.target===backdrop)closeHeaderLibrary();});
+  backdrop.querySelector('[data-header-lib-close]').onclick=closeHeaderLibrary;
+  backdrop.querySelector('[data-header-lib-cancel]').onclick=closeHeaderLibrary;
+  backdrop.querySelector('[data-header-lib-add]').onclick=()=>{if(!selectedHeaderDesign)return;components.push(makeHeaderComponent(selectedHeaderDesign));selectedIndex=components.length-1;renderCanvas();renderInspector();closeHeaderLibrary();showStatus('Header added to your app');};
+}
+
+function openHeaderLibrary(){
+  injectHeaderLibrary();
+  selectedHeaderDesign=HEADER_DESIGNS[0].id;
+  const grid=$('headerDesignGrid');
+  grid.innerHTML='';
+  HEADER_DESIGNS.forEach((design)=>{
+    const card=document.createElement('button');card.type='button';card.className='header-design-card'+(design.id===selectedHeaderDesign?' selected':'');
+    const preview=document.createElement('div');preview.className='header-design-preview';preview.style.background=design.bg;preview.style.color=design.color;
+    const brand=document.createElement('span');brand.className='hd-brand';brand.textContent=project?.name||'My App';
+    const nav=document.createElement('span');nav.className='hd-nav';nav.innerHTML='<span>Home</span><span>About</span><span>Contact</span>';
+    const menu=document.createElement('span');menu.className='hd-menu';menu.textContent='☰';
+    if(design.brandSide==='center'){preview.append(menu,brand,nav);}else if(design.menuSide==='left'){preview.append(menu,brand,nav);}else{preview.append(brand,nav,menu);}
+    const meta=document.createElement('div');meta.className='header-design-meta';const name=document.createElement('span');name.textContent=design.name;const check=document.createElement('span');check.className='header-design-check';check.textContent='✓';check.style.display=design.id===selectedHeaderDesign?'grid':'none';meta.append(name,check);
+    card.append(preview,meta);
+    card.onclick=()=>{selectedHeaderDesign=design.id;grid.querySelectorAll('.header-design-card').forEach((node)=>node.classList.remove('selected'));card.classList.add('selected');grid.querySelectorAll('.header-design-check').forEach((node)=>node.style.display='none');check.style.display='grid';};
+    grid.appendChild(card);
+  });
+  $('headerLibraryBackdrop').hidden=false;
+}
+
+function closeHeaderLibrary(){const el=$('headerLibraryBackdrop');if(el)el.hidden=true;}
+
+function openEditor(titleText, bodyBuilder, onSave) {
+  const backdrop=document.createElement('div');backdrop.className='header-edit-backdrop';
+  const modal=document.createElement('div');modal.className='header-edit-modal';
+  const heading=document.createElement('h3');heading.textContent=titleText;
+  const fields=document.createElement('div');fields.className='header-edit-fields';bodyBuilder(fields);
+  const actions=document.createElement('div');actions.className='header-edit-actions';
+  const cancel=document.createElement('button');cancel.type='button';cancel.className='header-edit-cancel';cancel.textContent='Cancel';
+  const save=document.createElement('button');save.type='button';save.className='header-edit-save';save.textContent='Apply';
+  cancel.onclick=()=>backdrop.remove();save.onclick=()=>{onSave();backdrop.remove();};
+  actions.append(cancel,save);modal.append(heading,fields,actions);backdrop.appendChild(modal);document.body.appendChild(backdrop);backdrop.addEventListener('click',(e)=>{if(e.target===backdrop)backdrop.remove();});
+}
+
+function openHeaderTitleEditor(component) {
+  const p=component.props||{};
+  const state={title:p.title||'',fontFamily:p.fontFamily||'Inter',fontSize:p.fontSize||20,fontWeight:p.fontWeight||'800',titleColor:p.titleColor||'#111827'};
+  openEditor('Edit Header Title',(fields)=>{
+    fields.appendChild(field('Text',state.title,(v)=>state.title=v));
+    fields.appendChild(field('Font',state.fontFamily,(v)=>state.fontFamily=v));
+    fields.appendChild(field('Font size',state.fontSize,(v)=>state.fontSize=Number(v)||20,{type:'number'}));
+    fields.appendChild(field('Weight',state.fontWeight,(v)=>state.fontWeight=v));
+    fields.appendChild(field('Color',state.titleColor,(v)=>state.titleColor=v));
+  },()=>{component.props={...component.props,...state};renderCanvas();renderInspector();showStatus('Header title updated');});
+}
+
+function openHeaderMenuEditor(component) {
+  const p=component.props||{};
+  const state={menuIcon:p.menuIcon||'☰',menuIconColor:p.menuIconColor||'#111827',menuIconSize:p.menuIconSize||22,menuBackground:p.menuBackground||'rgba(16,24,40,.04)',menuPanelBackground:p.menuPanelBackground||'#0f172a',menuPanelColor:p.menuPanelColor||'#ffffff'};
+  openEditor('Edit Header Menu',(fields)=>{
+    fields.appendChild(field('Menu icon',state.menuIcon,(v)=>state.menuIcon=v));
+    fields.appendChild(field('Icon color',state.menuIconColor,(v)=>state.menuIconColor=v));
+    fields.appendChild(field('Icon size',state.menuIconSize,(v)=>state.menuIconSize=Number(v)||22,{type:'number'}));
+    fields.appendChild(field('Button background',state.menuBackground,(v)=>state.menuBackground=v));
+    fields.appendChild(field('Menu panel background',state.menuPanelBackground,(v)=>state.menuPanelBackground=v));
+    fields.appendChild(field('Menu panel text',state.menuPanelColor,(v)=>state.menuPanelColor=v));
+    const note=document.createElement('div');note.className='header-empty-note';note.textContent='Single-click the menu icon to open the real menu. Double-click it to edit these settings.';fields.appendChild(note);
+  },()=>{component.props={...component.props,...state};renderCanvas();renderInspector();showStatus('Header menu updated');});
+}
+
+async function loadProject(){
+  if(!projectId) throw new Error('Missing project ID');
+  const auth=await supabase.auth.getUser();
+  if(auth.error) throw auth.error;
+  currentUser=auth.data.user;
+  if(!currentUser){location.replace('auth/sign-in.html');return;}
+  const result=await supabase.from('projects').select('id,user_id,name,description,app_definition,pages,updated_at').eq('id',projectId).eq('user_id',currentUser.id).maybeSingle();
+  if(result.error) throw result.error;
+  if(!result.data) throw new Error('Project not found or access denied');
+  project=result.data;
+  definition=normalizeDefinition(project);
+  currentPageId=Object.keys(definition.pages)[0]||'home';
+  components=normalizeComponents(definition.pages[currentPageId]?.components||[]);
+  title.textContent=`${project.name||'Untitled App'} Builder`;
+  pageStatus.textContent=definition.pages[currentPageId]?.name||'Home';
   renderPages();
   renderCanvas();
   renderInspector();
   showStatus('Definition loaded');
-  isReady = true;
+  isReady=true;
 }
 
+function bindPageDialog(){
+  $('addPageButton').addEventListener('click',openPageDialog);
+  $('cancelPageButton').addEventListener('click',()=>$('pageDialog').hidden=true);
+  $('confirmPageButton').addEventListener('click',addPage);
+  $('pageNameInput').addEventListener('keydown',(e)=>{if(e.key==='Enter')addPage();if(e.key==='Escape')$('pageDialog').hidden=true;});
+}
+
+async function saveDefinition(){
+  if(!isReady||!projectId||!currentUser)return;
+  if(currentPage())currentPage().components=normalizeComponents(components);
+  const synced=syncLegacyFields(definition);
+  const result=await supabase.from('projects').update({pages:synced.pages,app_definition:synced.appDefinition,updated_at:new Date().toISOString()}).eq('id',projectId).eq('user_id',currentUser.id).select('id').maybeSingle();
+  if(result.error)throw result.error;
+  if(!result.data)throw new Error('No project was updated');
+}
+
+saveButton.addEventListener('click',async()=>{saveButton.disabled=true;showStatus('Saving...');try{await saveDefinition();showStatus('Saved successfully');}catch(error){console.error(error);showStatus(`Save failed: ${error.message||'error'}`);}finally{saveButton.disabled=false;}});
+previewButton.addEventListener('click',()=>{if(currentPage())currentPage().components=normalizeComponents(components);location.href=`preview.html?projectId=${encodeURIComponent(projectId||'')}&page=${encodeURIComponent(currentPageId)}`;});
+
+document.querySelectorAll('.device-button').forEach((button)=>button.addEventListener('click',()=>{document.querySelectorAll('.device-button').forEach((item)=>item.classList.toggle('active',item===button));canvas.classList.toggle('canvas-mobile',button.dataset.device==='mobile');canvas.classList.toggle('canvas-desktop',button.dataset.device!=='mobile');}));
+
 setupComponents();
-
-$('addPageButton').addEventListener('click', () => {
-  $('pageNameInput').value = '';
-  $('pageDialogMessage').textContent = '';
-  $('pageDialog').hidden = false;
-  $('pageNameInput').focus();
-});
-$('cancelPageButton').addEventListener('click', () => { $('pageDialog').hidden = true; });
-$('confirmPageButton').addEventListener('click', addPage);
-$('pageNameInput').addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') addPage();
-  if (event.key === 'Escape') $('pageDialog').hidden = true;
-});
-
-document.querySelectorAll('.device-button').forEach((button) => {
-  button.addEventListener('click', () => {
-    document.querySelectorAll('.device-button').forEach((node) => node.classList.toggle('active', node === button));
-    canvas.classList.toggle('canvas-mobile', button.dataset.device === 'mobile');
-    canvas.classList.toggle('canvas-desktop', button.dataset.device !== 'mobile');
-  });
-});
-
-saveButton.addEventListener('click', async () => {
-  if (!isReady || !projectId || !currentUser) return;
-  if (currentPage()) currentPage().components = normalizeComponents(components);
-  saveButton.disabled = true;
-  showStatus('Saving...');
-  try {
-    const synced = syncLegacyFields(definition);
-    const saved = await supabase.from('projects')
-      .update({ pages: synced.pages, app_definition: synced.appDefinition, updated_at: new Date().toISOString() })
-      .eq('id', projectId)
-      .eq('user_id', currentUser.id)
-      .select('id,pages,app_definition,updated_at')
-      .maybeSingle();
-    if (saved.error) throw saved.error;
-    if (!saved.data) throw new Error('No project updated');
-    definition = normalizeDefinition({ ...project, ...saved.data });
-    project = { ...project, ...saved.data };
-    showStatus('Saved successfully');
-  } catch (error) {
-    console.error(error);
-    showStatus(`Save failed: ${error.message || 'error'}`);
-  } finally {
-    saveButton.disabled = false;
-  }
-});
-
-previewButton.addEventListener('click', () => {
-  if (currentPage()) currentPage().components = normalizeComponents(components);
-  window.location.href = `preview.html?projectId=${encodeURIComponent(projectId || '')}&page=${encodeURIComponent(currentPageId)}`;
-});
-
-loadProject().catch((error) => {
-  console.error(error);
-  showStatus(`Load failed: ${error.message || 'error'}`);
-});
+bindPageDialog();
+injectHeaderLibrary();
+loadProject().catch((error)=>{console.error(error);showStatus(`Load failed: ${error.message||'error'}`);document.querySelectorAll('.component-button').forEach((button)=>button.disabled=true);saveButton.disabled=true;});
