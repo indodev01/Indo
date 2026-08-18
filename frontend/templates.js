@@ -2,117 +2,113 @@ import { supabase } from './auth/supabase-config.js';
 
 const appTitle = document.getElementById('appTitle');
 const message = document.getElementById('message');
-const templateButtons = document.querySelectorAll('.template-button');
+const grid = document.getElementById('templateGrid');
 const params = new URLSearchParams(window.location.search);
 const projectId = params.get('projectId');
 
-const templates = {
-  Business: {
-    pages: {
-      home: {
-        id: 'home', name: 'Home', slug: 'home', styles: { background: '#ffffff', padding: '24px' },
-        settings: { title: 'Business Home' },
-        components: [
-          { id: 'business-heading', type: 'Heading', props: { text: 'Welcome to Your Business', size: 34, weight: '800', color: '#111827', align: 'center' } },
-          { id: 'business-text', type: 'Text', props: { text: 'Tell customers who you are and what you offer.', size: 16, color: '#5f6b82' } },
-          { id: 'business-button', type: 'Button', props: { label: 'Contact Us', action: { type: 'page', target: 'contact' }, background: '#5b45f4', color: '#ffffff', radius: 10 } }
-        ]
-      },
-      contact: {
-        id: 'contact', name: 'Contact', slug: 'contact', styles: { background: '#ffffff', padding: '24px' }, settings: { title: 'Contact' },
-        components: [
-          { id: 'contact-heading', type: 'Heading', props: { text: 'Contact Us', size: 30, weight: '700', color: '#111827', align: 'left' } },
-          { id: 'contact-name', type: 'Input', props: { label: 'Name', placeholder: 'Your name', name: 'name', inputType: 'text', required: true } },
-          { id: 'contact-email', type: 'Input', props: { label: 'Email', placeholder: 'you@example.com', name: 'email', inputType: 'email', required: true } },
-          { id: 'contact-message', type: 'Input', props: { label: 'Message', placeholder: 'How can we help?', name: 'message', inputType: 'text', required: true } }
-        ]
-      }
-    }
-  },
-  Store: {
-    pages: {
-      home: {
-        id: 'home', name: 'Home', slug: 'home', styles: { background: '#ffffff', padding: '24px' }, settings: { title: 'Store' },
-        components: [
-          { id: 'store-heading', type: 'Heading', props: { text: 'Featured Products', size: 32, weight: '800', color: '#111827', align: 'center' } },
-          { id: 'store-card', type: 'Card', props: { title: 'Featured Product', text: 'Add your product details here.', background: '#ffffff', radius: 14 } },
-          { id: 'store-button', type: 'Button', props: { label: 'Shop Now', action: { type: 'none', target: '' }, background: '#5b45f4', color: '#ffffff', radius: 10 } }
-        ]
-      }
-    }
-  },
-  Portfolio: {
-    pages: {
-      home: {
-        id: 'home', name: 'Home', slug: 'home', styles: { background: '#ffffff', padding: '24px' }, settings: { title: 'Portfolio' },
-        components: [
-          { id: 'portfolio-heading', type: 'Heading', props: { text: 'Hi, I\'m a Creator', size: 38, weight: '800', color: '#111827', align: 'center' } },
-          { id: 'portfolio-text', type: 'Text', props: { text: 'Showcase your best work, skills, and projects.', size: 16, color: '#5f6b82' } },
-          { id: 'portfolio-list', type: 'List', props: { title: 'Projects', items: ['Project One', 'Project Two', 'Project Three'], bullet: true } }
-        ]
-      }
-    }
-  }
-};
+function setMessage(text) { message.textContent = text; }
 
-async function loadProject() {
-  if (!projectId) {
-    appTitle.textContent = 'Choose a template for a new app.';
-    return null;
-  }
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw userError;
-  if (!userData.user) { window.location.replace('auth/sign-in.html'); return null; }
-  const { data: project, error } = await supabase
-    .from('projects').select('id,user_id,name').eq('id', projectId).eq('user_id', userData.user.id).maybeSingle();
-  if (error) throw error;
-  if (!project) throw new Error('Project not found or access denied');
-  appTitle.textContent = `Select a template for: ${project.name}`;
-  return { project, user: userData.user };
+function renderTemplate(template) {
+  const article = document.createElement('article');
+  article.className = 'template-card';
+  article.innerHTML = `
+    <div class="template-preview">
+      <div class="mini-phone">
+        <div class="mini-line"></div><div class="mini-line light"></div>
+        <div class="mini-cards"><div class="mini-card"></div><div class="mini-card"></div></div>
+        <div class="mini-line light"></div><div class="mini-line"></div>
+      </div>
+    </div>
+    <div class="template-body">
+      <h2></h2><p></p><button class="template-button" type="button">Use Template</button>
+    </div>`;
+  article.querySelector('h2').textContent = template.name;
+  article.querySelector('p').textContent = template.description;
+  article.querySelector('button').addEventListener('click', () => useTemplate(template));
+  grid.appendChild(article);
 }
 
-templateButtons.forEach((button) => {
-  button.addEventListener('click', async () => {
-    const templateName = button.dataset.template;
-    button.disabled = true;
-    message.textContent = `Applying ${templateName} template...`;
-    try {
-      const loaded = await loadProject();
-      if (!loaded) return;
-      const definition = templates[templateName];
-      if (!definition) throw new Error('Template not found');
+async function currentUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!data.user) { window.location.replace('auth/sign-in.html'); return null; }
+  return data.user;
+}
 
+async function useTemplate(template) {
+  const button = [...grid.querySelectorAll('button')].find((b) => b.closest('.template-card')?.querySelector('h2')?.textContent === template.name);
+  if (button) button.disabled = true;
+  setMessage(`Applying ${template.name}...`);
+
+  try {
+    const user = await currentUser();
+    if (!user) return;
+
+    if (projectId) {
+      const { data: project, error: projectError } = await supabase
+        .from('projects').select('id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
+      if (projectError) throw projectError;
+      if (!project) throw new Error('Project not found or access denied');
+
+      const definition = template.definition;
+      const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: project.name, description: template.description } };
       const { error } = await supabase
         .from('projects')
-        .update({
-          pages: definition.pages,
-          app_definition: {
-            schemaVersion: 1,
-            metadata: { title: loaded.project.name, description: `${templateName} template` },
-            pages: definition.pages,
-            navigation: { items: Object.values(definition.pages).map((page) => ({ label: page.name, pageId: page.id })) },
-            workflows: {}, database: { bindings: {} }, assets: { files: [] },
-            settings: { responsive: { desktop: true, tablet: true, mobile: true }, status: 'draft' }
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', projectId)
-        .eq('user_id', loaded.user.id);
+        .update({ pages: definition.pages, app_definition: nextDefinition, start_mode: 'template', updated_at: new Date().toISOString() })
+        .eq('id', projectId).eq('user_id', user.id);
       if (error) throw error;
-
-      message.textContent = `${templateName} template applied. Opening builder...`;
-      window.setTimeout(() => {
-        window.location.href = `builder-v2.html?projectId=${encodeURIComponent(projectId)}`;
-      }, 350);
-    } catch (error) {
-      console.error(error);
-      message.textContent = `Could not apply template: ${error.message || 'error'}`;
-      button.disabled = false;
+      setMessage('Template applied. Opening Design Studio...');
+      window.setTimeout(() => { window.location.href = `builder-v2.html?projectId=${encodeURIComponent(projectId)}`; }, 250);
+      return;
     }
-  });
-});
 
-loadProject().catch((error) => {
+    const name = `${template.name} App`;
+    const definition = template.definition;
+    const nextDefinition = { ...definition, metadata: { ...(definition.metadata || {}), title: name, description: template.description } };
+    const { data: project, error } = await supabase.from('projects').insert({
+      user_id: user.id,
+      name,
+      description: template.description,
+      start_mode: 'template',
+      status: 'draft',
+      pages: definition.pages,
+      app_definition: nextDefinition
+    }).select('id').single();
+    if (error) throw error;
+
+    setMessage('Project created. Opening Design Studio...');
+    window.setTimeout(() => { window.location.href = `builder-v2.html?projectId=${encodeURIComponent(project.id)}`; }, 250);
+  } catch (error) {
+    console.error(error);
+    setMessage(`Could not use template: ${error.message || 'Please try again.'}`);
+    if (button) button.disabled = false;
+  }
+}
+
+async function loadTemplates() {
+  const user = await currentUser();
+  if (!user) return;
+
+  if (projectId) {
+    const { data: project, error } = await supabase.from('projects').select('id,user_id,name').eq('id', projectId).eq('user_id', user.id).maybeSingle();
+    if (error) throw error;
+    if (!project) throw new Error('Project not found or access denied');
+    appTitle.textContent = `Select a template for: ${project.name}`;
+  }
+
+  const { data: templates, error } = await supabase
+    .from('templates').select('id,slug,name,description,definition').eq('is_active', true).order('created_at', { ascending: true });
+  if (error) throw error;
+
+  grid.innerHTML = '';
+  if (!templates?.length) {
+    grid.innerHTML = '<p class="message">No templates are available yet.</p>';
+    return;
+  }
+  templates.forEach(renderTemplate);
+}
+
+loadTemplates().catch((error) => {
   console.error(error);
-  message.textContent = `Could not load templates: ${error.message || 'error'}`;
+  setMessage(`Could not load templates: ${error.message || 'error'}`);
 });
