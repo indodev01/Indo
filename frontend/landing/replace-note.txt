@@ -1,0 +1,1 @@
+Landing page is fully replaced from the supplied demo reference.
