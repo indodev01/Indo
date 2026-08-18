@@ -1,0 +1,104 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f7f9fc;
+  color: #172033;
+}
+
+a {
+  text-decoration: none;
+}
+
+.site-header {
+  min-height: 72px;
+  padding: 0 6%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e9f0;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.text-link {
+  color: #43506a;
+  font-weight: 600;
+}
+
+.hero {
+  min-height: calc(100vh - 132px);
+  display: grid;
+  place-items: center;
+  padding: 48px 20px;
+}
+
+.hero-content {
+  width: min(760px, 100%);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: #5b6b8a;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(42px, 8vw, 72px);
+  line-height: 1.05;
+}
+
+.hero-text {
+  width: min(620px, 100%);
+  margin: 22px auto 0;
+  color: #64718a;
+  font-size: 19px;
+  line-height: 1.7;
+}
+
+.hero-actions {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-block;
+  padding: 13px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.primary-button {
+  background: #3348c8;
+  color: #ffffff;
+}
+
+.secondary-button {
+  background: #ffffff;
+  color: #3348c8;
+  border: 1px solid #ccd4e2;
+}
+
+.site-footer {
+  padding: 20px;
+  text-align: center;
+  color: #7b879b;
+  font-size: 14px;
+}
