@@ -1,4 +1,10 @@
 import { supabase } from './auth/supabase-config.js';
+import {
+  makeEmptyDefinition,
+  normalizeComponents,
+  normalizeDefinition,
+  syncLegacyFields
+} from './app-definition.js';
 
 const title = document.getElementById('builderTitle');
 const status = document.getElementById('projectStatus');
@@ -23,7 +29,7 @@ const projectId = params.get('projectId');
 
 let currentUser = null;
 let project = null;
-let pages = {};
+let definition = makeEmptyDefinition();
 let currentPageId = 'home';
 let components = [];
 let selectedIndex = -1;
@@ -34,31 +40,24 @@ function showStatus(text) {
 }
 
 function makeComponent(type) {
-  const base = { id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type };
-  if (type === 'Heading') return { ...base, text: 'Your Heading', size: '28', align: 'left' };
-  if (type === 'Text') return { ...base, text: 'Add your text here.' };
-  if (type === 'Button') return { ...base, label: 'Click Me', link: '' };
-  return { ...base, url: '', alt: 'Image' };
-}
-
-function normalizeComponent(value, index) {
-  if (typeof value === 'string') {
-    const component = makeComponent(value);
-    component.id = `${value.toLowerCase()}-${index + 1}-${Date.now()}`;
-    return component;
+  const id = `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  if (type === 'Heading') {
+    return { id, type, props: { text: 'Your Heading', size: '28', align: 'left' } };
   }
-  return value;
-}
-
-function normalizeComponents(values) {
-  return Array.isArray(values) ? values.map(normalizeComponent) : [];
+  if (type === 'Text') {
+    return { id, type, props: { text: 'Add your text here.' } };
+  }
+  if (type === 'Button') {
+    return { id, type, props: { label: 'Click Me', link: '' } };
+  }
+  return { id, type, props: { url: '', alt: 'Image' } };
 }
 
 function slugifyPageName(name) {
   const base = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
   let id = base;
   let counter = 2;
-  while (pages[id]) {
+  while (definition.pages[id]) {
     id = `${base}-${counter}`;
     counter += 1;
   }
@@ -66,12 +65,12 @@ function slugifyPageName(name) {
 }
 
 function currentPage() {
-  return pages[currentPageId] || null;
+  return definition.pages[currentPageId] || null;
 }
 
 function renderPages() {
   pageList.innerHTML = '';
-  Object.entries(pages).forEach(([id, page]) => {
+  Object.entries(definition.pages).forEach(([id, page]) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `page-button${id === currentPageId ? ' active' : ''}`;
@@ -82,16 +81,21 @@ function renderPages() {
 }
 
 function switchPage(pageId) {
-  if (!pages[pageId]) return;
-  pages[currentPageId].components = components;
+  const nextPage = definition.pages[pageId];
+  if (!nextPage) return;
+
+  if (currentPage()) {
+    currentPage().components = normalizeComponents(components);
+  }
+
   currentPageId = pageId;
-  components = normalizeComponents(pages[currentPageId].components || []);
+  components = normalizeComponents(nextPage.components || []);
   selectedIndex = -1;
-  pageStatus.textContent = pages[currentPageId].name;
+  pageStatus.textContent = nextPage.name;
   renderPages();
   renderCanvas();
   renderInspector();
-  showStatus(`Editing ${pages[currentPageId].name}`);
+  showStatus(`Editing ${nextPage.name}`);
 }
 
 function openPageDialog() {
@@ -111,9 +115,18 @@ function addPage() {
     pageDialogMessage.textContent = 'Enter a page name.';
     return;
   }
+
   const pageId = slugifyPageName(name);
-  pages[currentPageId].components = components;
-  pages[pageId] = { name, components: [] };
+  if (currentPage()) currentPage().components = normalizeComponents(components);
+  definition.pages[pageId] = {
+    id: pageId,
+    name,
+    slug: pageId,
+    components: [],
+    styles: { background: '#ffffff', padding: '16px' },
+    settings: { title: name }
+  };
+
   closePageDialog();
   switchPage(pageId);
 }
@@ -132,29 +145,31 @@ function renderCanvas() {
     typeLabel.textContent = component.type;
     item.appendChild(typeLabel);
 
+    const props = component.props || {};
+
     if (component.type === 'Heading') {
       const element = document.createElement('h3');
       element.className = 'component-preview-heading';
-      element.textContent = component.text || 'Your Heading';
-      element.style.fontSize = `${Number(component.size) || 28}px`;
-      element.style.textAlign = component.align || 'left';
+      element.textContent = props.text || 'Your Heading';
+      element.style.fontSize = `${Number(props.size) || 28}px`;
+      element.style.textAlign = props.align || 'left';
       item.appendChild(element);
     } else if (component.type === 'Text') {
       const element = document.createElement('p');
       element.className = 'component-preview-text';
-      element.textContent = component.text || 'Add your text here.';
+      element.textContent = props.text || 'Add your text here.';
       item.appendChild(element);
     } else if (component.type === 'Button') {
       const element = document.createElement('span');
       element.className = 'component-preview-button';
-      element.textContent = component.label || 'Click Me';
+      element.textContent = props.label || 'Click Me';
       item.appendChild(element);
     } else if (component.type === 'Image') {
-      if (component.url) {
+      if (props.url) {
         const element = document.createElement('img');
         element.className = 'component-preview-image';
-        element.src = component.url;
-        element.alt = component.alt || 'Image';
+        element.src = props.url;
+        element.alt = props.alt || 'Image';
         element.onerror = () => { element.style.display = 'none'; };
         item.appendChild(element);
       } else {
@@ -206,44 +221,48 @@ function selectField(labelText, value, choices, handler) {
   return wrap;
 }
 
+function setComponentProp(key, value) {
+  const component = components[selectedIndex];
+  if (!component) return;
+  component.props = { ...(component.props || {}), [key]: value };
+  renderCanvas();
+}
+
 function renderInspector() {
   inspectorContent.innerHTML = '';
   if (selectedIndex < 0 || !components[selectedIndex]) {
     selectionLabel.textContent = 'Nothing selected';
     const empty = document.createElement('p');
     empty.className = 'inspector-empty';
-    empty.textContent = `Select a component on ${pages[currentPageId]?.name || 'this page'} to configure it.`;
+    empty.textContent = `Select a component on ${currentPage()?.name || 'this page'} to configure it.`;
     inspectorContent.appendChild(empty);
     return;
   }
 
   const component = components[selectedIndex];
+  const props = component.props || {};
   selectionLabel.textContent = component.type;
+
   const helper = document.createElement('p');
   helper.className = 'helper';
-  helper.textContent = 'Changes are saved to Supabase when you press Save.';
+  helper.textContent = 'Component properties are part of the app definition.';
   inspectorContent.appendChild(helper);
 
-  const setValue = (key, value) => {
-    components[selectedIndex][key] = value;
-    renderCanvas();
-  };
-
   if (component.type === 'Heading') {
-    inspectorContent.appendChild(inputField('Text', component.text, (value) => setValue('text', value)));
+    inspectorContent.appendChild(inputField('Text', props.text, (value) => setComponentProp('text', value)));
     const row = document.createElement('div');
     row.className = 'inspector-row';
-    row.appendChild(inputField('Size (px)', component.size, (value) => setValue('size', value), { type: 'number', min: '12', max: '96' }));
-    row.appendChild(selectField('Alignment', component.align || 'left', [['left','Left'],['center','Center'],['right','Right']], (value) => setValue('align', value)));
+    row.appendChild(inputField('Size (px)', props.size, (value) => setComponentProp('size', value), { type: 'number', min: '12', max: '96' }));
+    row.appendChild(selectField('Alignment', props.align || 'left', [['left','Left'],['center','Center'],['right','Right']], (value) => setComponentProp('align', value)));
     inspectorContent.appendChild(row);
   } else if (component.type === 'Text') {
-    inspectorContent.appendChild(inputField('Text', component.text, (value) => setValue('text', value), { textarea: true }));
+    inspectorContent.appendChild(inputField('Text', props.text, (value) => setComponentProp('text', value), { textarea: true }));
   } else if (component.type === 'Button') {
-    inspectorContent.appendChild(inputField('Label', component.label, (value) => setValue('label', value)));
-    inspectorContent.appendChild(inputField('Link', component.link, (value) => setValue('link', value), { placeholder: 'https://example.com' }));
+    inspectorContent.appendChild(inputField('Label', props.label, (value) => setComponentProp('label', value)));
+    inspectorContent.appendChild(inputField('Link', props.link, (value) => setComponentProp('link', value), { placeholder: 'https://example.com or page id' }));
   } else if (component.type === 'Image') {
-    inspectorContent.appendChild(inputField('Image URL', component.url, (value) => setValue('url', value), { placeholder: 'https://...' }));
-    inspectorContent.appendChild(inputField('Alt text', component.alt, (value) => setValue('alt', value)));
+    inspectorContent.appendChild(inputField('Image URL', props.url, (value) => setComponentProp('url', value), { placeholder: 'https://...' }));
+    inspectorContent.appendChild(inputField('Alt text', props.alt, (value) => setComponentProp('alt', value)));
   }
 
   const deleteButton = document.createElement('button');
@@ -287,26 +306,15 @@ async function loadProject() {
   if (!loadedProject) throw new Error('Project not found or access denied');
 
   project = loadedProject;
+  definition = normalizeDefinition(project);
   title.textContent = `${project.name || 'Untitled App'} Builder`;
-
-  const storedPages = project.pages && typeof project.pages === 'object' ? project.pages : {};
-  pages = Object.keys(storedPages).length ? storedPages : {
-    home: {
-      name: 'Home',
-      components: normalizeComponents(project.app_definition?.componentsList || [])
-    }
-  };
-  if (!pages.home) {
-    pages.home = { name: 'Home', components: normalizeComponents(project.app_definition?.componentsList || []) };
-  }
-
-  currentPageId = Object.keys(pages)[0] || 'home';
-  components = normalizeComponents(pages[currentPageId].components || []);
-  pageStatus.textContent = pages[currentPageId].name;
+  currentPageId = Object.keys(definition.pages)[0] || 'home';
+  components = normalizeComponents(definition.pages[currentPageId]?.components || []);
+  pageStatus.textContent = definition.pages[currentPageId]?.name || 'Home';
   renderPages();
   renderCanvas();
   renderInspector();
-  showStatus('Project loaded');
+  showStatus(`Definition v${definition.schemaVersion} loaded`);
   isReady = true;
 }
 
@@ -317,7 +325,7 @@ buttons.forEach((button) => {
     selectedIndex = components.length - 1;
     renderCanvas();
     renderInspector();
-    showStatus(`${button.dataset.component} added to ${pages[currentPageId].name}`);
+    showStatus(`${button.dataset.component} added to ${currentPage().name}`);
   });
 });
 
@@ -333,24 +341,20 @@ saveButton.addEventListener('click', async () => {
   if (!isReady || !projectId || !currentUser) return;
 
   saveButton.disabled = true;
-  showStatus('Saving...');
+  showStatus('Saving definition...');
 
   try {
-    pages[currentPageId].components = components;
-    const homeComponents = normalizeComponents(pages.home?.components || []);
-    const nextAppDefinition = {
-      pages: pages,
-      components: {},
-      componentsList: homeComponents,
-      workflows: project.app_definition?.workflows || {},
-      settings: project.app_definition?.settings || {}
-    };
+    if (currentPage()) currentPage().components = normalizeComponents(components);
 
+    definition.metadata.title = project.name || definition.metadata.title;
+    definition.metadata.description = project.description || definition.metadata.description;
+
+    const synced = syncLegacyFields(definition);
     const { data: savedProject, error: saveError } = await supabase
       .from('projects')
       .update({
-        pages,
-        app_definition: nextAppDefinition,
+        pages: synced.pages,
+        app_definition: synced.appDefinition,
         updated_at: new Date().toISOString()
       })
       .eq('id', projectId)
@@ -360,14 +364,17 @@ saveButton.addEventListener('click', async () => {
 
     if (saveError) throw saveError;
     if (!savedProject) throw new Error('No project was updated. Check the project owner and RLS policy.');
-    if (savedProject.user_id !== currentUser.id) throw new Error('Project ownership verification failed.');
 
-    const savedPages = savedProject.pages || {};
-    if (JSON.stringify(savedPages) !== JSON.stringify(pages)) {
-      throw new Error('Supabase returned different page data after saving.');
+    const savedDefinition = normalizeDefinition(savedProject);
+    if (JSON.stringify(savedDefinition.pages) !== JSON.stringify(definition.pages)) {
+      throw new Error('Supabase returned different definition data after saving.');
     }
 
-    showStatus(`Saved ${Object.keys(pages).length} page${Object.keys(pages).length === 1 ? '' : 's'} to Supabase`);
+    definition = savedDefinition;
+    project.pages = savedProject.pages;
+    project.app_definition = savedProject.app_definition;
+    showStatus(`Saved App Definition v${definition.schemaVersion} • ${Object.keys(definition.pages).length} page${Object.keys(definition.pages).length === 1 ? '' : 's'}`);
+
     window.setTimeout(() => window.location.replace('dashboard/index.html'), 700);
   } catch (error) {
     console.error(error);
@@ -377,7 +384,7 @@ saveButton.addEventListener('click', async () => {
 });
 
 previewButton.addEventListener('click', () => {
-  pages[currentPageId].components = components;
+  if (currentPage()) currentPage().components = normalizeComponents(components);
   window.location.href = `preview.html?projectId=${encodeURIComponent(projectId || '')}&page=${encodeURIComponent(currentPageId)}`;
 });
 
