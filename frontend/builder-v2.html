@@ -1,1 +1,59 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Builder - Indo Dev</title><link rel="stylesheet" href="builder-v2.css"></head><body><main class="builder-page"><header class="topbar"><a class="brand" href="dashboard/index.html"><img src="landing/official-logo.svg" alt="Indo Dev"></a><div class="topbar-actions"><button id="saveButton" class="secondary">Save</button><button id="previewButton" class="primary">Preview</button></div></header><section class="workspace"><aside class="sidebar"><h2>Components</h2><div class="component-list"><button class="component-button" data-component="Heading">Heading</button><button class="component-button" data-component="Text">Text</button><button class="component-button" data-component="Button">Button</button><button class="component-button" data-component="Image">Image</button></div></aside><section class="canvas-area"><div class="canvas-toolbar"><h1 id="builderTitle">App Builder</h1><span id="projectStatus" class="status">Loading project...</span></div><div id="canvas" class="canvas"><div id="emptyState" class="empty">Choose a component from the left to start building.</div></div></section><aside class="inspector"><h2>Inspector</h2><p class="inspector-empty">Select a component on the canvas to configure it. We will add editing controls next.</p></aside></section></main><script type="module" src="builder-v2.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Builder - Indo Dev</title>
+  <link rel="stylesheet" href="builder-v2.css?v=5">
+</head>
+<body>
+  <main class="builder-page">
+    <header class="topbar">
+      <a class="brand" href="dashboard/index.html" aria-label="Indo Dev home">
+        <img src="landing/official-logo.svg" alt="Indo Dev">
+      </a>
+      <div class="topbar-actions">
+        <button id="saveButton" class="secondary" type="button">Save</button>
+        <button id="previewButton" class="primary" type="button">Preview</button>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <aside class="sidebar">
+        <h2>Components</h2>
+        <div class="component-list">
+          <button class="component-button" data-component="Heading" type="button">Heading</button>
+          <button class="component-button" data-component="Text" type="button">Text</button>
+          <button class="component-button" data-component="Button" type="button">Button</button>
+          <button class="component-button" data-component="Image" type="button">Image</button>
+        </div>
+      </aside>
+
+      <section class="canvas-area">
+        <div class="canvas-toolbar">
+          <div>
+            <h1 id="builderTitle">App Builder</h1>
+            <span id="projectStatus" class="status">Loading project...</span>
+          </div>
+        </div>
+
+        <div id="canvas" class="canvas">
+          <div id="emptyState" class="empty">Choose a component from the left to start building.</div>
+        </div>
+      </section>
+
+      <aside class="inspector">
+        <div class="inspector-header">
+          <h2>Inspector</h2>
+          <span id="selectionLabel" class="selection-label">Nothing selected</span>
+        </div>
+        <div id="inspectorContent" class="inspector-content">
+          <p class="inspector-empty">Select a component on the canvas to configure it.</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="builder-v2.js?v=5"></script>
+</body>
+</html>
