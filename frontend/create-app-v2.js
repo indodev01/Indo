@@ -6,6 +6,7 @@ const button = document.getElementById('createButton');
 const message = document.getElementById('message');
 const choices = [...document.querySelectorAll('.choice')];
 let currentUser = null;
+let navigatingToTemplates = false;
 
 function showMessage(text) { if (message) message.textContent = text; }
 function syncChoiceState() {
@@ -27,29 +28,45 @@ async function requireUser() {
   return currentUser;
 }
 
+function openTemplateLibrary() {
+  if (navigatingToTemplates) return;
+  const name = document.getElementById('appName')?.value.trim() || '';
+  const description = document.getElementById('appDescription')?.value.trim() || '';
+  if (!name) { showMessage('Enter an app name first.'); document.getElementById('appName')?.focus(); return; }
+  navigatingToTemplates = true;
+  button.disabled = true;
+  showMessage('Opening template library...');
+  const url = new URL('templates.html', window.location.href);
+  url.searchParams.set('appName', name);
+  if (description) url.searchParams.set('description', description);
+  url.searchParams.set('startMode', 'template');
+  window.location.href = url.href;
+}
+
+// Direct click handling makes the Template -> Create App transition reliable
+// even if browser form handling or a stale module cache interferes.
+button?.addEventListener('click', (event) => {
+  const startMode = document.querySelector('input[name="startMode"]:checked')?.value;
+  if (startMode === 'template') {
+    event.preventDefault();
+    event.stopPropagation();
+    openTemplateLibrary();
+  }
+});
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  const startMode = document.querySelector('input[name="startMode"]:checked')?.value || 'blank';
+  if (startMode === 'template') { openTemplateLibrary(); return; }
   if (!currentUser) { showMessage('Please wait while your account is being checked.'); return; }
 
   const name = document.getElementById('appName').value.trim();
   const description = document.getElementById('appDescription').value.trim();
-  const startMode = document.querySelector('input[name="startMode"]:checked')?.value || 'blank';
   if (!name) { showMessage('Enter an app name.'); return; }
 
   button.disabled = true;
-  showMessage(startMode === 'template' ? 'Opening template library...' : 'Creating your app...');
-
+  showMessage('Creating your app...');
   try {
-    if (startMode === 'template') {
-      // Do not create a project here. The selected template creates the project.
-      const url = new URL('templates.html', window.location.href);
-      url.searchParams.set('appName', name);
-      if (description) url.searchParams.set('description', description);
-      url.searchParams.set('startMode', 'template');
-      window.location.assign(url.href);
-      return;
-    }
-
     const definition = makeEmptyDefinition();
     definition.metadata.title = name;
     definition.metadata.description = description;
