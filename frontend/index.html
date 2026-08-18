@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Indo Dev</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Main application container -->
+  <main class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <h1>Indo Dev</h1>
+        <p>Build. Preview. Get Your App.</p>
+      </div>
+
+      <button id="createAppButton" class="primary-button">
+        + Create New App
+      </button>
+    </header>
+
+    <!-- Introduction -->
+    <section class="intro">
+      <h2>Welcome to Indo Dev</h2>
+      <p>
+        Create and customize apps without writing complicated code.
+      </p>
+    </section>
+
+    <!-- Project cards -->
+    <section class="projects">
+      <h2>Your Projects</h2>
+
+      <div class="project-grid">
+        <article class="card">
+          <h3>Start Your First App</h3>
+          <p>Choose a template and start building your app.</p>
+          <button class="card-button" data-action="create">
+            Start Building
+          </button>
+        </article>
+
+        <article class="card">
+          <h3>Template Library</h3>
+          <p>Explore starter layouts for different app ideas.</p>
+          <button class="card-button" data-action="templates">
+            View Templates
+          </button>
+        </article>
+
+        <article class="card">
+          <h3>Preview Engine</h3>
+          <p>Preview your app before you publish it.</p>
+          <button class="card-button" data-action="preview">
+            Open Preview
+          </button>
+        </article>
+      </div>
+    </section>
+
+    <!-- Message area used by JavaScript -->
+    <p id="message" class="message"></p>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
