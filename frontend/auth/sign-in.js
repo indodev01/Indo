@@ -1,6 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import {
   getAuth,
+  setPersistence,
+  browserLocalPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider
@@ -37,6 +39,10 @@ if (!isFirebaseConfigured()) {
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
 
+  setPersistence(auth, browserLocalPersistence).catch(function () {
+    showMessage('Could not enable persistent login on this browser.');
+  });
+
   signInForm.addEventListener('submit', async function (event) {
     event.preventDefault();
 
@@ -48,6 +54,7 @@ if (!isFirebaseConfigured()) {
     showMessage('Checking your account...');
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
       window.location.href = '../dashboard/index.html';
     } catch (error) {
@@ -64,6 +71,7 @@ if (!isFirebaseConfigured()) {
     showMessage('Opening Google sign-in...');
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
       await signInWithPopup(auth, googleProvider);
       window.location.href = '../dashboard/index.html';
     } catch (error) {
