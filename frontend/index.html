@@ -3,33 +3,98 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#050912">
-  <title>Indo — App Workspace</title>
-  <link rel="stylesheet" href="workspace.css?v=1">
+  <meta name="theme-color" content="#070b17">
+  <title>Indo — Dashboard</title>
+  <link rel="stylesheet" href="dashboard-clean.css?v=1">
 </head>
 <body>
-  <main class="workspace">
-    <aside class="brand-panel card">
-      <div class="brand-top"><a class="brand" href="landing/index.html"><img src="landing/official-logo.svg" alt="Indo"><span>Indo</span></a><span class="version">v2.0</span></div>
-      <h1>Build. Preview.<br>Publish. <span>Grow.</span></h1>
-      <p id="workspaceMessage">Create Android apps in minutes without coding.</p>
-      <div class="benefits"><div class="benefit"><i>⌘</i> No Coding Required</div><div class="benefit"><i>▣</i> Powerful Templates</div><div class="benefit"><i>◉</i> Live Preview</div><div class="benefit"><i>◷</i> 24H Free Trial</div></div>
-      <a class="start-btn" href="create-app-v2.html">Get Started Free →</a><div class="hint">No credit card required</div>
+  <main class="app">
+    <aside class="sidebar">
+      <a class="brand" href="landing/index.html" aria-label="Indo home">
+        <img src="landing/official-logo.svg" alt="Indo">
+        <strong>Indo</strong>
+      </a>
+      <nav class="nav" aria-label="Dashboard navigation">
+        <a class="active" href="index.html"><span>⌂</span>Dashboard</a>
+        <a href="#projects"><span>▦</span>My Apps</a>
+        <a href="templates.html"><span>◇</span>Templates</a>
+        <a href="builder-v2.html"><span>✦</span>Design Studio</a>
+        <a href="#build"><span>◉</span>Build &amp; Generate</a>
+        <a href="#publish"><span>↗</span>Publish &amp; Share</a>
+        <a href="#ads"><span>◒</span>Ads Manager</a>
+        <a href="#billing"><span>◫</span>Billing</a>
+        <a href="landing/index.html#support"><span>?</span>Support</a>
+        <a href="#settings"><span>⚙</span>Settings</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="trial-card">
+          <div class="trial-title"><span>⚡</span> 24-Hour Free Trial</div>
+          <p>You're on a free trial. Upgrade to unlock all premium features.</p>
+          <a href="#billing">Upgrade Now</a>
+        </div>
+        <div class="theme-card"><span>☾</span> Dark Mode <b>●</b></div>
+      </div>
     </aside>
 
-    <aside class="nav-panel card"><nav class="nav-list"><a class="nav-item active" href="index.html"><i>⌂</i>Dashboard</a><a class="nav-item" href="#projects"><i>▦</i>My Apps</a><a class="nav-item" href="templates.html"><i>◇</i>Templates</a><a class="nav-item" href="builder-v2.html"><i>✦</i>Design Studio</a><a class="nav-item" href="#build"><i>◉</i>Build & Generate</a><a class="nav-item" href="#publish"><i>↗</i>Publish & Share</a><a class="nav-item" href="#ads"><i>◒</i>Ads Manager</a><a class="nav-item" href="#billing"><i>◫</i>Billing</a><a class="nav-item" href="landing/index.html#support"><i>?</i>Support</a><a class="nav-item" href="#settings"><i>⚙</i>Settings</a></nav><div class="nav-foot"><a class="theme" href="#settings"><span>◔ Theme</span><strong>Dark⌄</strong></a></div></aside>
+    <section class="main">
+      <header class="topbar">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Welcome back, John! 👋</p>
+        </div>
+        <div class="top-actions">
+          <button class="search" type="button">⌕ <span>Search anything...</span></button>
+          <button class="icon-btn" type="button" aria-label="Notifications">♧</button>
+          <button class="profile" type="button">JD <span>John Doe</span><small>Pro Plan</small>⌄</button>
+        </div>
+      </header>
 
-    <section class="main-panel">
-      <header class="topbar"><h2>Dashboard</h2><div class="top-actions"><button type="button">⌕ Search</button><button type="button">♢</button><a id="authAction" href="auth/sign-in.html">Sign In</a><a id="createAction" class="primary" href="create-app-v2.html">Create App</a></div></header>
-      <section class="hero card"><div class="eyebrow">INDO WORKSPACE</div><h3>Build apps visually.<br><span>Preview, publish and grow.</span></h3><p>Create Android apps from templates or a blank canvas. Your project data is connected to Supabase.</p><div class="hero-actions"><a class="primary" href="create-app-v2.html">Create New App →</a><a href="templates.html">Explore Templates</a></div></section>
-      <section class="stats"><article class="stat"><div class="ico purple">▱</div><small>Total Apps</small><strong id="statTotal">0</strong><em>Projects in workspace</em></article><article class="stat"><div class="ico green">✓</div><small>Active Apps</small><strong id="statActive">0</strong><em>Ready to publish</em></article><article class="stat"><div class="ico orange">◷</div><small>Trial Apps</small><strong id="statTrial">0</strong><em>24H remaining</em></article><article class="stat"><div class="ico red">◈</div><small>Expired Apps</small><strong id="statExpired">0</strong><em>Needs activation</em></article></section>
-      <section class="section" id="projects"><div class="section-head"><div><div class="eyebrow">YOUR WORKSPACE</div><h3>My Apps</h3></div><a href="templates.html">View All →</a></div><div id="projectList" class="apps" aria-live="polite"><article class="app"><div class="app-icon">🍔</div><h4>Foodie Express</h4><p>v1.0.0 · Updated recently</p><span class="badge active-b">Active</span><div class="app-actions"><a href="preview.html">Preview</a><a href="builder-v2.html">Edit App</a></div></article><article class="app"><div class="app-icon">✦</div><h4>Daily Quotes</h4><p>v1.0.0 · Updated yesterday</p><span class="badge trial-b">Trial</span><div class="app-actions"><a href="preview.html">Preview</a><a href="builder-v2.html">Edit App</a></div></article><article class="app"><div class="app-icon">▤</div><h4>Tech News</h4><p>v1.0.0 · Updated 3d ago</p><span class="badge active-b">Active</span><div class="app-actions"><a href="preview.html">Preview</a><a href="builder-v2.html">Edit App</a></div></article><article class="app"><div class="app-icon">✚</div><h4>Fitness Pro</h4><p>v1.0.0 · Expired</p><span class="badge expired-b">Expired</span><div class="app-actions"><a href="preview.html">Preview</a><a href="#billing">Renew Now</a></div></article></div></section>
-      <section class="lower"><article class="tile"><div class="section-head"><h3>Choose Template</h3><a href="templates.html">See All</a></div><div class="template-grid"><div class="template"><div class="pic">🍔</div><span>Food Delivery</span><a class="use" href="create-app-v2.html?template=store">Use Template</a></div><div class="template"><div class="pic">📰</div><span>News Paper</span><a class="use" href="create-app-v2.html?template=news">Use Template</a></div><div class="template"><div class="pic">🏋</div><span>Fitness</span><a class="use" href="create-app-v2.html?template=fitness">Use Template</a></div></div></article><article class="tile" id="build"><div class="section-head"><h3>Build & Generate</h3><span class="badge trial-b">75%</span></div><div class="build-ring"><span>75%</span></div><div class="checks"><div class="check">Validating project</div><div class="check">Compiling resources</div><div class="check">Generating APK</div></div></article><article class="tile" id="publish"><div class="section-head"><h3>Publish & Share</h3><span>🎉</span></div><p>Your APK can be downloaded and published to Play Store or App Store using the free guide.</p><div class="publish-buttons"><button class="primary" type="button">↓ Download APK</button><button type="button">Publish Guide (Free)</button><button type="button">Share App</button></div></article></section>
-      <section class="lower"><article class="tile" id="ads"><div class="section-head"><h3>Ads Manager</h3><a class="primary" style="padding:7px 9px;border-radius:8px;font-size:8px" href="#">＋ New Ad Unit</a></div><div class="ad-box"><div class="ad-stat"><small>Impressions</small><strong>12.4K</strong><small>↗ 18.6% this month</small></div><div class="ad-row"><span>Banner Ad</span><button class="toggle on" type="button" aria-label="Banner ad active"></button></div><div class="ad-row"><span>Interstitial Ad</span><button class="toggle on" type="button" aria-label="Interstitial ad active"></button></div><div class="ad-row"><span>Native Ad</span><button class="toggle" type="button" aria-label="Native ad paused"></button></div></div></article><article class="tile" id="billing"><div class="section-head"><h3>Free Trial</h3><span class="badge trial-b">24H</span></div><p>Your first app is free for 24 hours. Upgrade to keep apps active and unlock premium features.</p><a class="start-btn" style="display:block;margin-top:12px" href="create-app-v2.html">Upgrade / Activate</a></article><article class="tile" id="settings"><div class="section-head"><h3>Recent Activity</h3><span>Now</span></div><div class="checks"><div class="check">Workspace ready</div><div class="check">Design Studio updated</div><div class="check">Publishing guide available</div></div></article></section>
+      <section class="stats">
+        <article class="stat"><div class="stat-icon purple">▱</div><div><span>Total Apps</span><strong id="statTotal">0</strong><small>3 active</small></div></article>
+        <article class="stat"><div class="stat-icon green">✓</div><div><span>Active Apps</span><strong id="statActive">0</strong><small class="up">↑ 2 this month</small></div></article>
+        <article class="stat"><div class="stat-icon orange">◷</div><div><span>Trial Apps</span><strong id="statTrial">0</strong><small>24H remaining</small></div></article>
+        <article class="stat"><div class="stat-icon red">◈</div><div><span>Expired Apps</span><strong id="statExpired">0</strong><small>Inactive</small></div></article>
+      </section>
+
+      <section class="panel" id="projects">
+        <div class="section-head"><h2>My Apps</h2><a href="templates.html">View All</a></div>
+        <div id="projectList" class="apps" aria-live="polite">
+          <article class="app-card"><div class="app-icon burger">🍔</div><h3>Foodie Express</h3><p>v1.0.0 · Updated 2h ago</p><span class="status active-status">Active</span><div><a href="builder-v2.html">✎ Edit App</a><button type="button">•••</button></div></article>
+          <article class="app-card"><div class="app-icon quote">S</div><h3>Daily Quotes</h3><p>v1.0.0 · Updated 1d ago</p><span class="status trial-status">Trial</span><div><a href="builder-v2.html">✎ Edit App</a><button type="button">•••</button></div></article>
+          <article class="app-card"><div class="app-icon news">▤</div><h3>Tech News</h3><p>v1.0.0 · Updated 3d ago</p><span class="status active-status">Active</span><div><a href="builder-v2.html">✎ Edit App</a><button type="button">•••</button></div></article>
+          <article class="app-card"><div class="app-icon fitness">H</div><h3>Fitness Pro</h3><p>v1.0.0 · Expired</p><span class="status expired-status">Expired</span><div><a href="#billing">↻ Renew Now</a><button type="button">•••</button></div></article>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel activity" id="settings">
+          <div class="section-head"><h2>Recent Activity</h2><a href="#settings">View All</a></div>
+          <div class="activity-row"><span class="mini purple">▱</span><div><strong>Foodie Express</strong> updated</div><time>2h ago</time></div>
+          <div class="activity-row"><span class="mini blue">▤</span><div><strong>Tech News</strong> app created</div><time>3h ago</time></div>
+          <div class="activity-row"><span class="mini black">S</span><div><strong>Daily Quotes</strong> published</div><time>1d ago</time></div>
+          <div class="activity-row"><span class="mini orange">🍔</span><div><strong>Fitness Pro</strong> expired</div><time>2d ago</time></div>
+          <div class="activity-row"><span class="mini pink">◇</span><div><strong>New template</strong> added</div><time>3d ago</time></div>
+        </article>
+
+        <article class="panel quick-actions">
+          <div class="section-head"><h2>Quick Actions</h2></div>
+          <div class="quick-grid">
+            <a href="create-app-v2.html"><span>＋</span>Create New App</a>
+            <a href="builder-v2.html"><span>✎</span>Design Studio</a>
+            <a href="#build"><span>🚀</span>Build &amp; Generate</a>
+            <a href="#publish"><span>↥</span>Publish &amp; Share</a>
+            <a href="#ads"><span>◒</span>Ads Manager</a>
+            <a href="#billing"><span>▣</span>Billing</a>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel trial-banner" id="billing">
+        <div><h2>⚡ Your free trial is amazing!</h2><p>Upgrade to unlock premium features, remove ads &amp; publish to stores.</p></div>
+        <a href="#billing">Upgrade Now</a>
+      </section>
     </section>
-
-    <aside class="preview-panel card" aria-label="Live app preview"><div class="preview-head"><div><div class="eyebrow">LIVE PREVIEW</div><h3>Preview</h3></div><span class="android">♟ Android⌄</span></div><div class="phone"><div class="notch"></div><div class="phone-content"><div class="phone-title">Foodie Express</div><div class="phone-sub">Delicious food, delivered fast</div><div class="search">⌕ &nbsp; Search food...</div><div class="cats"><span class="sel">All</span><span>Pizza</span><span>Burger</span><span>Drinks</span><span>Dessert</span></div><div class="phone-head"><strong>Popular Items</strong><span>See all</span></div><div class="foods"><div class="food"><div class="emoji">🍔</div><strong>Cheese Burger</strong><span>$4.99 · ★4.5</span></div><div class="food"><div class="emoji">🍕</div><strong>Veg Pizza</strong><span>$7.99 · ★4.7</span></div></div><div class="phone-head"><strong>Top Restaurants</strong><span>See all</span></div><div class="food" style="display:flex;gap:8px;align-items:center"><div class="emoji" style="width:42px;height:42px">🍽</div><div><strong>Urban Bites</strong><span>Fast food · 4.8</span></div></div></div><div class="bottom-nav"><span class="sel">⌂<small>Home</small></span><span>▤<small>Orders</small></span><span>♡<small>Favorites</small></span><span>♙<small>Profile</small></span></div></div></aside>
   </main>
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>
