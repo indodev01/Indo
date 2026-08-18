@@ -4,13 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create New App - Indo Dev</title>
-  <link rel="stylesheet" href="create-app.css?v=3">
+  <link rel="stylesheet" href="create-app.css?v=4">
 </head>
 <body>
   <main class="create-page">
     <header class="topbar">
       <a class="brand" href="dashboard/index.html" aria-label="Indo Dev home">
-        <img src="landing/official-logo.svg?v=3" alt="Indo Dev">
+        <img src="landing/official-logo.svg?v=4" alt="Indo Dev">
       </a>
       <a class="back-link" href="dashboard/index.html">← Home</a>
     </header>
@@ -18,59 +18,62 @@
     <section class="hero">
       <p class="eyebrow">NEW PROJECT</p>
       <h1>Create your app</h1>
-      <p class="hero-copy">Start a new project with a clean setup that is ready for the builder.</p>
+      <p class="hero-copy">Give your app a name, then choose exactly how you want to start.</p>
     </section>
 
-    <section class="panel-shell">
-      <form id="createAppForm" class="panel" novalidate>
-        <div class="field">
-          <label for="appName">App name</label>
-          <input id="appName" name="appName" type="text" maxlength="80" placeholder="e.g. My Store" autocomplete="off" required>
-          <small class="field-help">Choose a clear name for your project.</small>
-        </div>
+    <form id="createAppForm" class="panel" novalidate>
+      <div class="field">
+        <label for="appName">App name</label>
+        <input id="appName" name="appName" type="text" maxlength="80" placeholder="e.g. My Store" autocomplete="off" required>
+        <small>Choose a clear name for your project.</small>
+      </div>
 
-        <div class="field">
-          <label for="appDescription">Description <span>(optional)</span></label>
-          <textarea id="appDescription" name="appDescription" rows="4" maxlength="300" placeholder="What will your app do?"></textarea>
-        </div>
+      <div class="field">
+        <label for="appDescription">Description <span>(optional)</span></label>
+        <textarea id="appDescription" name="appDescription" rows="4" maxlength="300" placeholder="What will your app do?"></textarea>
+      </div>
 
-        <div class="field start-field">
-          <div class="section-heading">
+      <div class="field start-field">
+        <div class="section-heading">
+          <div>
             <label>Start from</label>
-            <span>Choose a starting point</span>
+            <span>Choose one option</span>
           </div>
-
-          <div class="choices" role="radiogroup" aria-label="Start from">
-            <label class="choice active">
-              <input type="radio" name="startMode" value="blank" checked>
-              <span class="choice-icon">＋</span>
-              <span class="choice-copy">
-                <strong>Blank App</strong>
-                <small>Start with an empty project and build everything yourself.</small>
-              </span>
-            </label>
-
-            <label class="choice">
-              <input type="radio" name="startMode" value="template">
-              <span class="choice-icon">▦</span>
-              <span class="choice-copy">
-                <strong>Template</strong>
-                <small>Start with a ready-made layout and customize it.</small>
-              </span>
-            </label>
-          </div>
+          <span id="selectedModeLabel" class="selected-label">Blank App selected</span>
         </div>
 
-        <div class="actions">
-          <a class="cancel-link" href="dashboard/index.html">Cancel</a>
-          <button id="createButton" class="primary-button" type="submit">Create App</button>
-        </div>
+        <div class="start-options" role="radiogroup" aria-label="Start from">
+          <button class="start-option selected" type="button" data-mode="blank" role="radio" aria-checked="true">
+            <span class="option-icon plus-icon" aria-hidden="true">+</span>
+            <span class="option-content">
+              <strong>Blank App</strong>
+              <small>Start with a completely clean project and build it from scratch.</small>
+            </span>
+            <span class="option-check" aria-hidden="true">✓</span>
+          </button>
 
-        <p id="message" class="message" role="status" aria-live="polite"></p>
-      </form>
-    </section>
+          <button class="start-option" type="button" data-mode="template" role="radio" aria-checked="false">
+            <span class="option-icon grid-icon" aria-hidden="true">▦</span>
+            <span class="option-content">
+              <strong>Template</strong>
+              <small>Choose a ready-made starter layout and customize it for your idea.</small>
+            </span>
+            <span class="option-check" aria-hidden="true">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <input id="startMode" name="startMode" type="hidden" value="blank">
+
+      <div class="actions">
+        <a class="cancel-link" href="dashboard/index.html">Cancel</a>
+        <button id="createButton" class="primary-button" type="submit">Create App</button>
+      </div>
+
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+    </form>
   </main>
 
-  <script type="module" src="create-app.js?v=3"></script>
+  <script type="module" src="create-app.js?v=4"></script>
 </body>
 </html>
