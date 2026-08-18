@@ -11,6 +11,9 @@ signInForm.addEventListener('submit', function (event) {
   // Read the entered email.
   const email = document.getElementById('email').value.trim();
 
-  // For now, show the next step without connecting a backend.
+  // Show a clear success message.
   formMessage.textContent = `Sign-in request received for ${email}.`;
+
+  // Move the user to the dashboard after the form is accepted.
+  window.location.href = '../dashboard/index.html';
 });
