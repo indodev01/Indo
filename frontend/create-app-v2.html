@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create New App - Indo Dev</title>
+  <link rel="stylesheet" href="create-app-v2.css">
+</head>
+<body>
+  <main class="create-page">
+    <header class="topbar">
+      <a class="brand" href="dashboard/index.html"><img src="landing/official-logo.svg" alt="Indo Dev"></a>
+      <a class="back-link" href="dashboard/index.html">← Home</a>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">New project</p>
+      <h1>Create your app</h1>
+      <p>Give your project a name and choose how you want to start.</p>
+    </section>
+
+    <form id="createAppForm" class="panel">
+      <div class="field">
+        <label for="appName">App name</label>
+        <input id="appName" name="appName" type="text" maxlength="80" placeholder="e.g. My Store" required>
+      </div>
+
+      <div class="field">
+        <label for="appDescription">Description <span>(optional)</span></label>
+        <textarea id="appDescription" name="appDescription" rows="4" maxlength="300" placeholder="What will your app do?"></textarea>
+      </div>
+
+      <div class="field">
+        <label>Start from</label>
+        <div class="choices">
+          <label class="choice active"><input type="radio" name="startMode" value="blank" checked><span><strong>Blank App</strong><small>Start from a clean project.</small></span></label>
+          <label class="choice"><input type="radio" name="startMode" value="template"><span><strong>Template</strong><small>Choose a ready-made starter.</small></span></label>
+        </div>
+      </div>
+
+      <button id="createButton" class="primary-button" type="submit">Create App</button>
+      <p id="message" class="message" role="status"></p>
+    </form>
+  </main>
+  <script type="module" src="create-app-v2.js"></script>
+</body>
+</html>
