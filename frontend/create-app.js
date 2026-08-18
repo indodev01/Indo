@@ -1,13 +1,41 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './auth/firebase-config.js';
+import {
+  getAuth,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
+import {
+  getDatabase,
+  ref,
+  push,
+  set
+} from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
+import {
+  firebaseConfig,
+  realtimeDatabaseUrl,
+  isFirebaseConfigured
+} from './auth/firebase-config.js';
 
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
 const message = document.getElementById('message');
+const appNameInput = document.getElementById('appName');
+const appDescriptionInput = document.getElementById('appDescription');
+const choiceInputs = document.querySelectorAll('input[name="startMode"]');
 
-function showMessage(text) { message.textContent = text; }
+function showMessage(text) {
+  message.textContent = text;
+}
+
+function setChoiceState(selectedInput) {
+  document.querySelectorAll('.choice').forEach((choice) => {
+    choice.classList.remove('active');
+  });
+  selectedInput.closest('.choice')?.classList.add('active');
+}
+
+choiceInputs.forEach((input) => {
+  input.addEventListener('change', () => setChoiceState(input));
+});
 
 if (!isFirebaseConfigured()) {
   button.disabled = true;
@@ -17,29 +45,41 @@ if (!isFirebaseConfigured()) {
   const auth = getAuth(app);
   const database = getDatabase(app, realtimeDatabaseUrl);
   let currentUser = null;
+  let authReady = false;
 
-  onAuthStateChanged(auth, user => {
+  button.disabled = true;
+  showMessage('Checking your account...');
+
+  onAuthStateChanged(auth, (user) => {
+    authReady = true;
     currentUser = user;
-    if (!user) window.location.href = 'auth/sign-in.html';
+
+    if (!user) {
+      window.location.replace('auth/sign-in.html');
+      return;
+    }
+
+    button.disabled = false;
+    showMessage('');
+    appNameInput.focus();
   });
 
-  document.querySelectorAll('.choice input').forEach(input => {
-    input.addEventListener('change', () => {
-      document.querySelectorAll('.choice').forEach(choice => choice.classList.remove('active'));
-      input.closest('.choice').classList.add('active');
-    });
-  });
-
-  form.addEventListener('submit', async event => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!currentUser) return;
 
-    const name = document.getElementById('appName').value.trim();
-    const description = document.getElementById('appDescription').value.trim();
-    const startMode = document.querySelector('input[name="startMode"]:checked').value;
+    if (!authReady || !currentUser) {
+      showMessage('Please wait for your account session to load.');
+      return;
+    }
+
+    const name = appNameInput.value.trim();
+    const description = appDescriptionInput.value.trim();
+    const selected = document.querySelector('input[name="startMode"]:checked');
+    const startMode = selected ? selected.value : 'blank';
 
     if (!name) {
       showMessage('Please enter an app name.');
+      appNameInput.focus();
       return;
     }
 
@@ -49,8 +89,15 @@ if (!isFirebaseConfigured()) {
     try {
       const now = Date.now();
       const projectRef = push(ref(database, `users/${currentUser.uid}/projects`));
+      const projectId = projectRef.key;
+
+      if (!projectId) {
+        throw new Error('Could not generate a project ID.');
+      }
+
       await set(projectRef, {
         info: {
+          id: projectId,
           name,
           description,
           startMode,
@@ -65,12 +112,18 @@ if (!isFirebaseConfigured()) {
           settings: {}
         },
         versions: {
-          v1: { status: 'draft', createdAt: now }
+          v1: {
+            status: 'draft',
+            createdAt: now,
+            updatedAt: now
+          }
         }
       });
 
-      window.location.href = `builder.html?projectId=${encodeURIComponent(projectRef.key)}`;
+      showMessage('App created successfully. Opening the builder...');
+      window.location.replace(`builder.html?projectId=${encodeURIComponent(projectId)}`);
     } catch (error) {
+      console.error(error);
       showMessage(`Could not create app (${error.code || 'unknown-error'}). Please try again.`);
       button.disabled = false;
     }
