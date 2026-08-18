@@ -3,40 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Templates - Indo Dev</title>
-  <link rel="stylesheet" href="templates.css">
+  <meta name="theme-color" content="#070b17">
+  <title>Templates — Indo</title>
+  <link rel="stylesheet" href="dashboard-v8.css">
+  <style>
+    .template-page{min-height:100vh;padding:26px;background:radial-gradient(circle at 85% 0%,rgba(138,69,255,.12),transparent 24%),#060914}.template-wrap{max-width:1180px;margin:0 auto}.template-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px}.template-top h1{margin:4px 0 0;font-size:34px;letter-spacing:-1.2px}.template-top p{margin:7px 0 0;color:#8994a8;font-size:11px}.template-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.template-card{overflow:hidden;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:linear-gradient(145deg,#101727,#0b101b);box-shadow:0 16px 38px rgba(0,0,0,.2)}.template-preview{height:205px;padding:18px;background:radial-gradient(circle at 70% 20%,rgba(181,76,255,.2),transparent 28%),linear-gradient(145deg,#0b1020,#15142b)}.mini-phone{width:108px;height:172px;margin:0 auto;padding:14px 7px 7px;border:3px solid #2a3140;border-radius:19px;background:#080b12}.mini-line{height:7px;border-radius:5px;background:#8a45ff;margin:6px 0}.mini-line.light{background:#293244}.mini-cards{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:7px}.mini-card{height:42px;border-radius:6px;background:#171f2e}.template-body{padding:17px}.template-body h2{margin:0;font-size:17px}.template-body p{margin:7px 0 14px;color:#7f8a9d;font-size:10px;line-height:1.5}.template-button{width:100%;min-height:36px;border:0;border-radius:9px;background:linear-gradient(135deg,#6d35ef,#ad45ef);color:#fff;font-weight:800;font-size:10px;cursor:pointer}.back-link{display:inline-flex;min-height:34px;align-items:center;padding:0 11px;border:1px solid rgba(255,255,255,.08);border-radius:9px;color:#bfc7d7;font-size:10px}.message{min-height:18px;margin-top:14px;color:#bca4ff;font-size:10px}@media(max-width:820px){.template-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.template-page{padding:15px}.template-grid{grid-template-columns:1fr}.template-top{align-items:flex-start;flex-direction:column}}
+  </style>
 </head>
 <body>
-  <main class="page">
-    <header class="page-header">
-      <a href="index.html" class="back-link">← Back to Dashboard</a>
-      <h1>Choose a Template</h1>
-      <p id="appTitle">Select a starting point for your app.</p>
-    </header>
-
+  <main class="template-page"><div class="template-wrap">
+    <header class="template-top"><div><a href="index.html" class="back-link">← Dashboard</a><h1>Choose a Template</h1><p id="appTitle">Start with a ready-made app and customize it in Design Studio.</p></div><a class="top-primary" href="create-app-v2.html">Create Blank App</a></header>
     <section class="template-grid">
-      <article class="template-card">
-        <h2>Business</h2>
-        <p>A clean starter for business information and contact pages.</p>
-        <button class="template-button" data-template="Business">Use Business</button>
-      </article>
-
-      <article class="template-card">
-        <h2>Store</h2>
-        <p>A simple product-focused starter for an online store.</p>
-        <button class="template-button" data-template="Store">Use Store</button>
-      </article>
-
-      <article class="template-card">
-        <h2>Portfolio</h2>
-        <p>A personal showcase for projects, skills, and contact details.</p>
-        <button class="template-button" data-template="Portfolio">Use Portfolio</button>
-      </article>
+      <article class="template-card"><div class="template-preview"><div class="mini-phone"><div class="mini-line"></div><div class="mini-line light"></div><div class="mini-cards"><div class="mini-card"></div><div class="mini-card"></div></div><div class="mini-line light"></div><div class="mini-line light"></div></div></div><div class="template-body"><h2>Food Delivery</h2><p>Restaurant listings, menu cards, search and order-ready home screen.</p><button class="template-button" data-template="Food Delivery">Use Template</button></div></article>
+      <article class="template-card"><div class="template-preview"><div class="mini-phone"><div class="mini-line light"></div><div class="mini-line"></div><div class="mini-cards"><div class="mini-card"></div><div class="mini-card"></div></div><div class="mini-line light"></div><div class="mini-line"></div></div></div><div class="template-body"><h2>News App</h2><p>News feed, categories, article cards and a clean reading experience.</p><button class="template-button" data-template="News">Use Template</button></div></article>
+      <article class="template-card"><div class="template-preview"><div class="mini-phone"><div class="mini-line"></div><div class="mini-line light"></div><div class="mini-cards"><div class="mini-card"></div><div class="mini-card"></div></div><div class="mini-line"></div><div class="mini-line light"></div></div></div><div class="template-body"><h2>Fitness Pro</h2><p>Workout plans, progress cards, trainer content and profile screens.</p><button class="template-button" data-template="Fitness Pro">Use Template</button></div></article>
     </section>
-
     <p id="message" class="message"></p>
-  </main>
-
+  </div></main>
   <script src="templates.js"></script>
 </body>
 </html>
