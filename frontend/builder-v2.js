@@ -28,6 +28,7 @@ let currentPageId = 'home';
 let components = [];
 let selectedIndex = -1;
 let isReady = false;
+let dragIndex = -1;
 
 function showStatus(text) { status.textContent = text; }
 
@@ -90,8 +91,38 @@ function renderCanvas() {
   emptyState.style.display = components.length ? 'none' : '';
   components.forEach((component, index) => {
     const item = document.createElement('div');
-    item.className = 'canvas-item'; if (index === selectedIndex) item.classList.add('selected');
+    item.className = 'canvas-item';
+    item.draggable = true;
+    item.dataset.index = String(index);
+    if (index === selectedIndex) item.classList.add('selected');
     item.addEventListener('click', () => selectComponent(index));
+    item.addEventListener('dragstart', () => {
+      dragIndex = index;
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => {
+      dragIndex = -1;
+      item.classList.remove('dragging');
+      canvas.querySelectorAll('.canvas-item').forEach((node) => node.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      if (dragIndex === -1 || dragIndex === index) return;
+      canvas.querySelectorAll('.canvas-item').forEach((node) => node.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('drop', (event) => {
+      event.preventDefault();
+      if (dragIndex === -1 || dragIndex === index) return;
+      const [moved] = components.splice(dragIndex, 1);
+      const targetIndex = dragIndex < index ? index - 1 : index;
+      components.splice(targetIndex, 0, moved);
+      selectedIndex = targetIndex;
+      dragIndex = -1;
+      showStatus(`Moved ${moved.type} to position ${targetIndex + 1}`);
+      renderCanvas();
+      renderInspector();
+    });
     renderComponent(item, component); canvas.appendChild(item);
   });
 }
