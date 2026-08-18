@@ -45,10 +45,19 @@ button,a,input,textarea,select{touch-action:manipulation}
   .benefits{gap:10px;margin-top:20px}
   .side-illustration{width:min(270px,80%);margin-top:20px}
 
+  /* AUTH MOBILE BRANDING: LEFT-ALIGNED ON EVERY AUTH SCREEN */
+  .auth-card{position:relative!important;overflow:hidden}
+  .auth-card::before{content:'';position:absolute;top:24px;left:20px;width:150px;height:44px;transform:none;background:url('indo-brand.svg') left center/contain no-repeat;z-index:5;display:block}
+  .form-wrap{position:relative!important;z-index:4!important;padding-top:108px!important}
+  .mobile-auth-brand{height:0!important;display:block!important;margin:0!important}
+  .mobile-auth-brand img{display:none!important}
+  .mobile-auth-brand a{position:absolute!important;left:20px!important;top:-62px!important;width:44px!important;height:44px!important;display:grid!important;place-items:center!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;background:#0c1120!important;color:#fff!important;font-size:30px!important;line-height:1!important;z-index:6}
+  .auth-card .eyebrow{margin-top:0!important}
+
   /* DASHBOARD */
   .app{display:block;min-height:100svh}
   .sidebar{position:relative;top:auto;height:auto;min-height:0;padding:12px;border-right:0;border-bottom:1px solid var(--line)}
-  .sidebar .brand{justify-content:center;padding:4px 8px 14px;font-size:26px}
+  .sidebar .brand{justify-content:flex-start;padding:4px 8px 14px;font-size:26px}
   .sidebar .brand img{width:40px;height:40px}
   .nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .nav a{min-height:42px;justify-content:flex-start;padding:10px 11px;font-size:12px}
@@ -106,6 +115,9 @@ button,a,input,textarea,select{touch-action:manipulation}
   .site-header .menu-button{width:46px;height:46px;flex-basis:46px}
   .auth-card{padding:24px 16px}
   .auth-side{padding:20px 16px}
+  .auth-card::before{left:16px;width:140px;height:40px}
+  .mobile-auth-brand a{left:16px!important}
+  .form-wrap{padding-top:104px!important}
   .brand img{width:36px;height:36px}
   .brand span{font-size:24px}
   .switch-top{font-size:11px}
@@ -124,6 +136,9 @@ button,a,input,textarea,select{touch-action:manipulation}
   .site-header .brand-logo{width:38px!important;height:38px!important;flex-basis:38px}
   .site-header .brand-name{font-size:27px!important}
   .site-header .menu-button{width:44px;height:44px;flex-basis:44px}
+  .auth-card::before{left:12px;width:136px;height:38px}
+  .mobile-auth-brand a{left:12px!important}
+  .form-wrap{padding-top:100px!important}
   .nav a{font-size:11px;padding:9px 8px}
   .side-copy h2{font-size:31px}
   .hero-content h1{font-size:40px!important}
