@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Indo Dev</title>
+  <link rel="stylesheet" href="auth.css">
+  <link rel="stylesheet" href="sign-in.css">
+</head>
+<body>
+  <main class="auth-page">
+    <section class="auth-card">
+      <a class="brand" href="../landing/index.html">Indo Dev</a>
+      <p class="eyebrow">Welcome back</p>
+      <h1>Sign in to Indo Dev</h1>
+      <p class="helper-text">Continue building your apps and projects.</p>
+
+      <form id="signInForm">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required>
+
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Your password" required>
+
+        <button class="primary-button" type="submit">Sign In</button>
+      </form>
+
+      <p class="utility-link"><a href="forgot-password.html">Forgot password?</a></p>
+      <p id="formMessage" class="message"></p>
+      <p class="switch-link">New to Indo Dev? <a href="sign-up.html">Create an account</a></p>
+    </section>
+  </main>
+
+  <script src="sign-in.js"></script>
+</body>
+</html>
