@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Templates - Indo Dev</title>
+  <link rel="stylesheet" href="templates.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <a href="index.html" class="back-link">← Back to Dashboard</a>
+      <h1>Choose a Template</h1>
+      <p id="appTitle">Select a starting point for your app.</p>
+    </header>
+
+    <section class="template-grid">
+      <article class="template-card">
+        <h2>Business</h2>
+        <p>A clean starter for business information and contact pages.</p>
+        <button class="template-button" data-template="Business">Use Business</button>
+      </article>
+
+      <article class="template-card">
+        <h2>Store</h2>
+        <p>A simple product-focused starter for an online store.</p>
+        <button class="template-button" data-template="Store">Use Store</button>
+      </article>
+
+      <article class="template-card">
+        <h2>Portfolio</h2>
+        <p>A personal showcase for projects, skills, and contact details.</p>
+        <button class="template-button" data-template="Portfolio">Use Portfolio</button>
+      </article>
+    </section>
+
+    <p id="message" class="message"></p>
+  </main>
+
+  <script src="templates.js"></script>
+</body>
+</html>
