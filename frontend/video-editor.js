@@ -10,7 +10,6 @@ let project = null;
 let definition = null;
 let lastPageId = null;
 let videoCache = new Map();
-let hydrated = false;
 let editorObserverBusy = false;
 
 const style = document.createElement('style');
@@ -31,138 +30,68 @@ function pageIdFromName(name){
   return exact?.id || Object.keys(definition.pages)[0] || 'home';
 }
 function currentPage(){ return definition?.pages?.[lastPageId || pageIdFromName(pageStatus?.textContent)] || null; }
-function videoComponents(){
-  const page=currentPage();
-  if(!page) return [];
-  return (page.components||[]).filter(c=>c.type==='Video');
-}
-function formatTime(seconds){
-  if(!Number.isFinite(seconds)) return '0:00';
-  const s=Math.max(0,Math.floor(seconds)); const m=Math.floor(s/60); return `${m}:${String(s%60).padStart(2,'0')}`;
-}
-function getProps(component){
-  const defaults={url:'',posterUrl:'',title:'Featured Video',autoplay:false,controls:true,loop:false,muted:false};
-  return {...defaults,...(component.props||{})};
-}
+function videoComponents(){ const page=currentPage(); return page ? (page.components||[]).filter(c=>c.type==='Video') : []; }
+function formatTime(seconds){ if(!Number.isFinite(seconds)) return '0:00'; const s=Math.max(0,Math.floor(seconds)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+function getProps(component){ return {url:'',posterUrl:'',title:'Featured Video',autoplay:false,controls:true,loop:false,muted:false,...(component.props||{})}; }
 
 async function loadProject(){
   if(!projectId) return false;
-  const {data:userData,error:userError}=await supabase.auth.getUser();
-  if(userError||!userData.user) return false;
+  const {data:userData,error:userError}=await supabase.auth.getUser(); if(userError||!userData.user) return false;
   const {data:loaded,error}=await supabase.from('projects').select('id,user_id,name,app_definition,pages').eq('id',projectId).eq('user_id',userData.user.id).maybeSingle();
   if(error||!loaded) return false;
-  project=loaded;
-  definition=loaded.app_definition && typeof loaded.app_definition==='object' ? loaded.app_definition : {pages:loaded.pages||{}};
-  if(!definition.pages) definition.pages=loaded.pages||{};
-  lastPageId=pageIdFromName(pageStatus?.textContent);
-  videoCache.clear();
-  videoComponents().forEach(c=>videoCache.set(c.id,getProps(c)));
-  return true;
+  project=loaded; definition=loaded.app_definition&&typeof loaded.app_definition==='object'?loaded.app_definition:{pages:loaded.pages||{}}; if(!definition.pages) definition.pages=loaded.pages||{};
+  lastPageId=pageIdFromName(pageStatus?.textContent); videoCache.clear(); videoComponents().forEach(c=>videoCache.set(c.id,getProps(c))); return true;
 }
 
 async function persistVideos(){
   if(!projectId||!definition?.pages) return;
   const pages=structuredClone(definition.pages);
-  for(const page of Object.values(pages)){
-    for(const component of page.components||[]){
-      if(component.type==='Video' && videoCache.has(component.id)) component.props={...component.props,...videoCache.get(component.id)};
-    }
-  }
+  for(const page of Object.values(pages)) for(const component of page.components||[]) if(component.type==='Video'&&videoCache.has(component.id)) component.props={...component.props,...videoCache.get(component.id)};
   const appDefinition={...(project?.app_definition||{}),pages};
-  const {error}=await supabase.from('projects').update({pages,app_definition:appDefinition,updated_at:new Date().toISOString()}).eq('id',projectId);
-  if(error) console.error(error);
-  definition.pages=pages;
+  const {error}=await supabase.from('projects').update({pages,app_definition:appDefinition,updated_at:new Date().toISOString()}).eq('id',projectId); if(error) console.error(error); definition.pages=pages;
+}
+
+async function addNewVideoFromCanvas(){
+  const item=canvas?.querySelector('.canvas-item.selected');
+  const label=item?.querySelector('.component-type');
+  if(label?.textContent!=='Video') return;
+  const index=Number(item.dataset.index); if(!Number.isInteger(index)) return;
+  const {data:userData}=await supabase.auth.getUser(); if(!userData.user) return;
+  const {data:loaded,error}=await supabase.from('projects').select('id,app_definition,pages').eq('id',projectId).eq('user_id',userData.user.id).maybeSingle(); if(error||!loaded) return;
+  const pages=structuredClone(loaded.pages||loaded.app_definition?.pages||{}); const pageId=Object.keys(pages).find(id=>pages[id].name===pageStatus?.textContent)||Object.keys(pages)[0]||'home';
+  pages[pageId]=pages[pageId]||{id:pageId,name:pageId,slug:pageId,components:[]}; pages[pageId].components=pages[pageId].components||[];
+  if(pages[pageId].components[index]?.type!=='Video'){
+    const video={id:`video-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,type:'Video',props:getProps({})}; pages[pageId].components.splice(index,0,video);
+    const appDefinition={...(loaded.app_definition||{}),pages};
+    await supabase.from('projects').update({pages,app_definition:appDefinition,updated_at:new Date().toISOString()}).eq('id',projectId).eq('user_id',userData.user.id);
+  }
+  window.location.reload();
 }
 
 function playerFor(component){
-  const p=getProps(component);
-  const wrap=document.createElement('div'); wrap.className='indo-video-editor';
-  const video=document.createElement('video');
-  video.src=p.url||''; video.poster=p.posterUrl||''; video.autoplay=Boolean(p.autoplay&&p.url); video.loop=Boolean(p.loop); video.muted=Boolean(p.muted); video.playsInline=true; video.preload='metadata';
-  wrap.appendChild(video);
+  const p=getProps(component); const wrap=document.createElement('div'); wrap.className='indo-video-editor'; const video=document.createElement('video');
+  video.src=p.url||''; video.poster=p.posterUrl||''; video.autoplay=Boolean(p.autoplay&&p.url); video.loop=Boolean(p.loop); video.muted=Boolean(p.muted); video.playsInline=true; video.preload='metadata'; wrap.appendChild(video);
   const title=document.createElement('div'); title.className='indo-video-title'; title.textContent=p.title||'Featured Video'; wrap.appendChild(title);
-  const controls=document.createElement('div'); controls.className='indo-video-controls';
-  const row=document.createElement('div'); row.className='indo-video-row';
-  const play=document.createElement('button'); play.textContent='▶'; play.setAttribute('aria-label','Play');
-  const time=document.createElement('span'); time.className='indo-video-time'; time.textContent='0:00 / 0:00';
-  const spacer=document.createElement('span'); spacer.className='indo-video-spacer';
-  const mute=document.createElement('button'); mute.textContent=p.muted?'🔇':'🔊';
-  const speed=document.createElement('select'); speed.className='indo-video-speed'; ['1','1.25','1.5','2'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=`${v}x`;speed.appendChild(o)});
-  const full=document.createElement('button'); full.textContent='⛶'; full.setAttribute('aria-label','Fullscreen');
-  const progress=document.createElement('input'); progress.className='indo-video-progress'; progress.type='range'; progress.min='0'; progress.max='100'; progress.value='0';
-  play.addEventListener('click',()=>{ if(video.paused){video.play();}else{video.pause();} });
-  video.addEventListener('play',()=>play.textContent='❚❚'); video.addEventListener('pause',()=>play.textContent='▶');
-  video.addEventListener('loadedmetadata',()=>{progress.max=String(video.duration||100);time.textContent=`0:00 / ${formatTime(video.duration)}`;});
-  video.addEventListener('timeupdate',()=>{progress.value=String(video.currentTime||0);time.textContent=`${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;});
-  progress.addEventListener('input',()=>{video.currentTime=Number(progress.value)||0;});
-  mute.addEventListener('click',()=>{video.muted=!video.muted;mute.textContent=video.muted?'🔇':'🔊';});
-  speed.addEventListener('change',()=>{video.playbackRate=Number(speed.value)||1;});
-  full.addEventListener('click',()=>{if(wrap.requestFullscreen)wrap.requestFullscreen();});
-  row.append(play,time,spacer,mute,speed,full); controls.append(progress,row); wrap.appendChild(controls);
-  return wrap;
+  const controls=document.createElement('div'); controls.className='indo-video-controls'; const row=document.createElement('div'); row.className='indo-video-row';
+  const play=document.createElement('button'); play.textContent='▶'; const time=document.createElement('span'); time.className='indo-video-time'; time.textContent='0:00 / 0:00'; const spacer=document.createElement('span'); spacer.className='indo-video-spacer'; const mute=document.createElement('button'); mute.textContent=p.muted?'🔇':'🔊'; const speed=document.createElement('select'); speed.className='indo-video-speed'; ['1','1.25','1.5','2'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=`${v}x`;speed.appendChild(o)}); const full=document.createElement('button'); full.textContent='⛶'; const progress=document.createElement('input'); progress.className='indo-video-progress'; progress.type='range'; progress.min='0'; progress.max='100'; progress.value='0';
+  play.onclick=()=>video.paused?video.play():video.pause(); video.onplay=()=>play.textContent='❚❚'; video.onpause=()=>play.textContent='▶'; video.onloadedmetadata=()=>{progress.max=String(video.duration||100);time.textContent=`0:00 / ${formatTime(video.duration)}`}; video.ontimeupdate=()=>{progress.value=String(video.currentTime||0);time.textContent=`${formatTime(video.currentTime)} / ${formatTime(video.duration)}`}; progress.oninput=()=>video.currentTime=Number(progress.value)||0; mute.onclick=()=>{video.muted=!video.muted;mute.textContent=video.muted?'🔇':'🔊'}; speed.onchange=()=>video.playbackRate=Number(speed.value)||1; full.onclick=()=>wrap.requestFullscreen?.();
+  row.append(play,time,spacer,mute,speed,full); controls.append(progress,row); wrap.appendChild(controls); return wrap;
 }
 
 function renderVideoEditors(){
-  if(editorObserverBusy||!inspector) return;
-  const selected=canvas?.querySelector('.canvas-item.selected');
-  if(!selected) return;
-  const label=selected.querySelector('.component-type');
-  if(!label||label.textContent!=='Video') return;
-  const index=Number(selected.dataset.index);
-  const page=currentPage(); const component=page?.components?.[index];
-  if(!component||component.type!=='Video') return;
-  const p=getProps(component); videoCache.set(component.id,p);
-  editorObserverBusy=true;
-  inspector.innerHTML='';
-  const heading=document.createElement('p'); heading.style.cssText='margin:0 0 12px;color:#bca4ff;font-size:11px;font-weight:800'; heading.textContent='VIDEO PLAYER'; inspector.appendChild(heading);
+  if(editorObserverBusy||!inspector) return; const selected=canvas?.querySelector('.canvas-item.selected'); if(!selected) return; const label=selected.querySelector('.component-type'); if(!label||label.textContent!=='Video') return;
+  const index=Number(selected.dataset.index); const page=currentPage(); const component=page?.components?.[index]; if(!component||component.type!=='Video') return; const p=getProps(component); videoCache.set(component.id,p);
+  editorObserverBusy=true; inspector.innerHTML=''; const heading=document.createElement('p'); heading.style.cssText='margin:0 0 12px;color:#bca4ff;font-size:11px;font-weight:800'; heading.textContent='VIDEO PLAYER'; inspector.appendChild(heading);
   const fields=[['Video URL','url','https://.../video.mp4'],['Poster URL','posterUrl','https://.../poster.jpg'],['Title','title','Featured Video']];
-  for(const [labelText,key,placeholder] of fields){const wrap=document.createElement('div');wrap.className='indo-video-field';const l=document.createElement('label');l.textContent=labelText;const input=document.createElement('input');input.value=p[key]||'';input.placeholder=placeholder;input.addEventListener('input',()=>{p[key]=input.value;videoCache.set(component.id,{...p});});wrap.append(l,input);inspector.appendChild(wrap);}
-  const checks=document.createElement('div');checks.className='indo-video-checks';[['autoplay','Autoplay'],['loop','Loop'],['muted','Muted'],['controls','Controls']].forEach(([key,labelText])=>{const item=document.createElement('label');item.className='indo-video-check';const c=document.createElement('input');c.type='checkbox';c.checked=Boolean(p[key]);c.addEventListener('change',()=>{p[key]=c.checked;videoCache.set(component.id,{...p});renderSelectedVideo();});item.append(c,document.createTextNode(labelText));checks.appendChild(item)});inspector.appendChild(checks);
-  const note=document.createElement('p');note.style.cssText='margin:14px 0 0;color:#7f899a;font-size:10px;line-height:1.5';note.textContent='Use your own video URL/poster. The player controls can be customized here and remain editable in your app.';inspector.appendChild(note);
-  editorObserverBusy=false;
+  for(const [labelText,key,placeholder] of fields){const wrap=document.createElement('div');wrap.className='indo-video-field';const l=document.createElement('label');l.textContent=labelText;const input=document.createElement('input');input.value=p[key]||'';input.placeholder=placeholder;input.addEventListener('input',()=>{p[key]=input.value;videoCache.set(component.id,{...p});refreshVideoPlayer(component.id)});wrap.append(l,input);inspector.appendChild(wrap);}
+  const checks=document.createElement('div');checks.className='indo-video-checks';[['autoplay','Autoplay'],['loop','Loop'],['muted','Muted'],['controls','Controls']].forEach(([key,labelText])=>{const item=document.createElement('label');item.className='indo-video-check';const c=document.createElement('input');c.type='checkbox';c.checked=Boolean(p[key]);c.addEventListener('change',()=>{p[key]=c.checked;videoCache.set(component.id,{...p});refreshVideoPlayer(component.id)});item.append(c,document.createTextNode(labelText));checks.appendChild(item)}); inspector.appendChild(checks);
+  const note=document.createElement('p'); note.style.cssText='margin:14px 0 0;color:#7f899a;font-size:10px;line-height:1.5'; note.textContent='Use your own video URL/poster. The player remains editable after the template is copied to the user app.'; inspector.appendChild(note); editorObserverBusy=false;
 }
+function refreshVideoPlayer(id){ const item=[...canvas.querySelectorAll('.canvas-item')].find(x=>x.querySelector('.component-type')?.textContent==='Video'&&currentPage()?.components?.[Number(x.dataset.index)]?.id===id); if(!item)return; const old=item.querySelector('.indo-video-editor'); if(old)old.replaceWith(playerFor(currentPage().components[Number(item.dataset.index)])); }
+function renderSelectedVideo(){const selected=canvas?.querySelector('.canvas-item.selected');if(!selected)return;const index=Number(selected.dataset.index);const component=currentPage()?.components?.[index];if(!component||component.type!=='Video')return;const old=selected.querySelector('.indo-video-editor');if(old)old.remove();const label=selected.querySelector('.component-type');if(label)label.style.display='none';selected.appendChild(playerFor(component));}
 
-function renderSelectedVideo(){
-  const selected=canvas?.querySelector('.canvas-item.selected');
-  if(!selected) return;
-  const index=Number(selected.dataset.index); const component=currentPage()?.components?.[index]; if(!component||component.type!=='Video') return;
-  const old=selected.querySelector('.indo-video-editor'); if(old) old.remove();
-  const label=selected.querySelector('.component-type'); if(label) label.style.display='none';
-  selected.appendChild(playerFor(component));
-}
-
-const canvasObserver=new MutationObserver(()=>{
-  if(!definition) return;
-  const items=canvas?.querySelectorAll('.canvas-item')||[];
-  items.forEach(item=>{
-    const label=item.querySelector('.component-type');
-    if(label?.textContent==='Video' && !item.querySelector('.indo-video-editor')){
-      const index=Number(item.dataset.index); const component=currentPage()?.components?.[index]; if(component) item.appendChild(playerFor(component));
-    }
-  });
-  renderVideoEditors();
-});
-if(canvas) canvasObserver.observe(canvas,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-index']});
-
-const inspectorObserver=new MutationObserver(()=>renderVideoEditors());
-if(inspector) inspectorObserver.observe(inspector,{childList:true,subtree:true});
-
+const canvasObserver=new MutationObserver(()=>{if(!definition)return;const items=canvas?.querySelectorAll('.canvas-item')||[];items.forEach(item=>{const label=item.querySelector('.component-type');if(label?.textContent==='Video'&&!item.querySelector('.indo-video-editor')){const index=Number(item.dataset.index);const component=currentPage()?.components?.[index];if(component)item.appendChild(playerFor(component));}});renderVideoEditors();});
+if(canvas)canvasObserver.observe(canvas,{childList:true,subtree:true,attributes:true,attributeFilter:['class','data-index']});
+const inspectorObserver=new MutationObserver(()=>renderVideoEditors());if(inspector)inspectorObserver.observe(inspector,{childList:true,subtree:true});
 saveButton?.addEventListener('click',()=>setTimeout(persistVideos,700));
-
-(async()=>{
-  const ok=await loadProject();
-  if(!ok) return;
-  const existingVideo=videoComponents()[0];
-  if(existingVideo){videoCache.set(existingVideo.id,getProps(existingVideo));}
-  window.setTimeout(()=>{
-    const label=[...document.querySelectorAll('.component-button')].find(b=>b.dataset.component==='Video');
-    if(label&&!label.dataset.bridgeBound){
-      label.dataset.bridgeBound='1';
-      label.addEventListener('click',async()=>{
-        await new Promise(r=>setTimeout(r,200));
-        const fresh=await loadProject();
-        if(fresh) window.location.reload();
-      });
-    }
-  },400);
-})();
+(async()=>{const ok=await loadProject();if(!ok)return;window.setTimeout(()=>{const button=[...document.querySelectorAll('.component-button')].find(b=>b.dataset.component==='Video');if(button&&!button.dataset.bridgeBound){button.dataset.bridgeBound='1';button.addEventListener('click',()=>setTimeout(addNewVideoFromCanvas,300));}},400);})();
