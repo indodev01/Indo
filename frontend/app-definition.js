@@ -1,3 +1,4 @@
+// Indo Dev canonical App Definition Engine (full current app state).
 export const APP_DEFINITION_VERSION = 1;
 
 export function makeEmptyPage(name = 'Home') {
