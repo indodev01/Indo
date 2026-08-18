@@ -1,7 +1,4 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './auth/firebase-config.js';
+import { supabase } from './auth/supabase-config.js';
 
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
@@ -12,7 +9,10 @@ const startModeInput = document.getElementById('startMode');
 const selectedModeLabel = document.getElementById('selectedModeLabel');
 const optionButtons = document.querySelectorAll('.start-option');
 
-function showMessage(text) { message.textContent = text; }
+function showMessage(text) {
+  message.textContent = text;
+}
+
 function selectStartMode(mode) {
   const selected = mode === 'template' ? 'template' : 'blank';
   startModeInput.value = selected;
@@ -23,71 +23,102 @@ function selectStartMode(mode) {
   });
   selectedModeLabel.textContent = selected === 'template' ? 'Template selected' : 'Blank App selected';
 }
-optionButtons.forEach((option) => option.addEventListener('click', () => selectStartMode(option.dataset.mode)));
+
+optionButtons.forEach((option) => {
+  option.addEventListener('click', () => selectStartMode(option.dataset.mode));
+});
+
 selectStartMode('blank');
 
-if (!isFirebaseConfigured()) {
-  button.disabled = true;
-  showMessage('Firebase is not configured.');
-} else {
-  const firebaseApp = initializeApp(firebaseConfig);
-  const auth = getAuth(firebaseApp);
-  const database = getDatabase(firebaseApp, realtimeDatabaseUrl);
-  let currentUser = null;
-  let authReady = false;
+async function loadCurrentUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!data.user) {
+    window.location.replace('auth/sign-in.html');
+    return null;
+  }
+  return data.user;
+}
 
-  button.disabled = true;
-  showMessage('Checking your account...');
+button.disabled = true;
+showMessage('Checking your account...');
 
-  onAuthStateChanged(auth, (user) => {
-    authReady = true;
-    currentUser = user;
-    if (!user) {
-      window.location.replace('auth/sign-in.html');
-      return;
-    }
+loadCurrentUser()
+  .then((user) => {
+    if (!user) return;
     button.disabled = false;
     showMessage('');
     appNameInput.focus();
+  })
+  .catch((error) => {
+    console.error(error);
+    showMessage('Could not load your account. Please sign in again.');
   });
 
-  form.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!authReady || !currentUser) {
-      showMessage('Please wait for your account session to load.');
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const name = appNameInput.value.trim();
+  const description = appDescriptionInput.value.trim();
+  const startMode = startModeInput.value === 'template' ? 'template' : 'blank';
+
+  if (!name) {
+    showMessage('Please enter an app name.');
+    appNameInput.focus();
+    return;
+  }
+
+  button.disabled = true;
+  showMessage(startMode === 'template' ? 'Creating your project...' : 'Creating your blank app...');
+
+  try {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!userData.user) {
+      window.location.replace('auth/sign-in.html');
       return;
     }
-    const name = appNameInput.value.trim();
-    const description = appDescriptionInput.value.trim();
-    const startMode = startModeInput.value === 'template' ? 'template' : 'blank';
-    if (!name) {
-      showMessage('Please enter an app name.');
-      appNameInput.focus();
-      return;
+
+    const now = new Date().toISOString();
+    const { data: project, error } = await supabase
+      .from('projects')
+      .insert({
+        user_id: userData.user.id,
+        name,
+        description,
+        start_mode: startMode,
+        status: 'draft',
+        app_definition: {
+          pages: {},
+          components: {},
+          componentsList: [],
+          workflows: {},
+          settings: {}
+        },
+        created_at: now,
+        updated_at: now
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+
+    await supabase.from('project_versions').insert({
+      project_id: project.id,
+      version_name: 'v1',
+      data: { status: 'draft', createdAt: now, updatedAt: now }
+    });
+
+    if (startMode === 'template') {
+      showMessage('Project created. Opening templates...');
+      window.location.replace(`templates.html?projectId=${encodeURIComponent(project.id)}`);
+    } else {
+      showMessage('Blank app created. Opening the builder...');
+      window.location.replace(`builder-v2.html?projectId=${encodeURIComponent(project.id)}`);
     }
-    button.disabled = true;
-    showMessage(startMode === 'template' ? 'Creating your project...' : 'Creating your blank app...');
-    try {
-      const now = Date.now();
-      const projectRef = push(ref(database, `users/${currentUser.uid}/projects`));
-      const projectId = projectRef.key;
-      if (!projectId) throw new Error('Could not generate a project ID.');
-      await set(projectRef, {
-        info: { id: projectId, name, description, startMode, status: 'draft', createdAt: now, updatedAt: now },
-        appDefinition: { pages: {}, components: {}, componentsList: [], workflows: {}, settings: {} },
-        versions: { v1: { status: 'draft', createdAt: now, updatedAt: now } }
-      });
-      if (startMode === 'template') {
-        showMessage('Project created. Opening templates...');
-        window.location.replace(`templates.html?projectId=${encodeURIComponent(projectId)}`);
-      } else {
-        showMessage('Blank app created. Opening the builder...');
-        window.location.replace(`builder-v2.html?projectId=${encodeURIComponent(projectId)}`);
-      }
-    } catch (error) {
-      console.error(error);
-      showMessage(`Could not create app (${error.code || 'unknown-error'}). Please try again.`);
-      button.disabled = false;
-    }
-  });
-}
+  } catch (error) {
+    console.error(error);
+    showMessage(`Could not create app (${error.code || error.message || 'unknown-error'}). Please try again.`);
+    button.disabled = false;
+  }
+});
