@@ -1,67 +1,61 @@
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
-import { getDatabase, ref, push, set } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js';
-import { firebaseConfig, realtimeDatabaseUrl, isFirebaseConfigured } from './auth/firebase-config.js';
+import { supabase } from './auth/supabase-config.js';
+import { makeEmptyDefinition } from './app-definition.js';
 
 const form = document.getElementById('createAppForm');
 const button = document.getElementById('createButton');
 const message = document.getElementById('message');
+let currentUser = null;
 
-function showMessage(text) { message.textContent = text; }
+function showMessage(text) { if (message) message.textContent = text; }
 
-if (!isFirebaseConfigured()) {
-  button.disabled = true;
-  showMessage('Firebase is not configured.');
-} else {
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const database = getDatabase(app, realtimeDatabaseUrl);
-  let currentUser = null;
-
-  onAuthStateChanged(auth, user => {
-    currentUser = user;
-    if (!user) {
-      window.location.href = 'auth/sign-in.html';
-    }
-  });
-
-  form.addEventListener('submit', async event => {
-    event.preventDefault();
-    if (!currentUser) return;
-
-    const name = document.getElementById('appName').value.trim();
-    const description = document.getElementById('appDescription').value.trim();
-    const startMode = document.querySelector('input[name="startMode"]:checked').value;
-
-    button.disabled = true;
-    showMessage('Creating your app...');
-
-    try {
-      const projectRef = push(ref(database, `users/${currentUser.uid}/projects`));
-      await set(projectRef, {
-        info: {
-          name,
-          description,
-          startMode,
-          status: 'draft',
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        },
-        appDefinition: {
-          pages: {},
-          components: {},
-          workflows: {},
-          settings: {}
-        },
-        versions: {
-          v1: { status: 'draft', createdAt: Date.now() }
-        }
-      });
-
-      window.location.href = `builder.html?projectId=${encodeURIComponent(projectRef.key)}`;
-    } catch (error) {
-      showMessage(`Could not create app (${error.code || 'unknown-error'}). Please try again.`);
-      button.disabled = false;
-    }
-  });
+async function requireUser() {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
+    window.location.replace('auth/sign-in.html');
+    return null;
+  }
+  currentUser = data.user;
+  return currentUser;
 }
+
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!currentUser) return;
+
+  const name = document.getElementById('appName').value.trim();
+  const description = document.getElementById('appDescription').value.trim();
+  const startMode = document.querySelector('input[name="startMode"]:checked')?.value || 'blank';
+  if (!name) { showMessage('Enter an app name.'); return; }
+
+  button.disabled = true;
+  showMessage('Creating your app...');
+
+  try {
+    const definition = makeEmptyDefinition();
+    definition.metadata.title = name;
+    definition.metadata.description = description;
+
+    const { data: project, error } = await supabase.from('projects').insert({
+      user_id: currentUser.id,
+      name,
+      description,
+      start_mode: startMode,
+      status: 'draft',
+      pages: definition.pages,
+      app_definition: definition
+    }).select('id').single();
+
+    if (error) throw error;
+    window.location.replace(`builder-v2.html?projectId=${encodeURIComponent(project.id)}`);
+  } catch (error) {
+    console.error(error);
+    showMessage(`Could not create app: ${error.message || 'Please try again.'}`);
+    button.disabled = false;
+  }
+});
+
+requireUser().catch((error) => {
+  console.error(error);
+  button.disabled = true;
+  showMessage('Could not verify your account. Please sign in again.');
+});
