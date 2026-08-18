@@ -39,8 +39,12 @@ if (!isFirebaseConfigured()) {
   const auth = getAuth(app);
   const googleProvider = new GoogleAuthProvider();
 
-  setPersistence(auth, browserLocalPersistence).catch(function () {
-    showMessage('Could not enable persistent login on this browser.');
+  async function preparePersistentSession() {
+    await setPersistence(auth, browserLocalPersistence);
+  }
+
+  preparePersistentSession().catch(() => {
+    showMessage('Could not keep you signed in on this browser.');
   });
 
   signInForm.addEventListener('submit', async function (event) {
@@ -54,9 +58,9 @@ if (!isFirebaseConfigured()) {
     showMessage('Checking your account...');
 
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      await preparePersistentSession();
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = '../dashboard/index.html';
+      window.location.replace('../dashboard/index.html');
     } catch (error) {
       showMessage(getReadableAuthError(error));
     } finally {
@@ -71,9 +75,9 @@ if (!isFirebaseConfigured()) {
     showMessage('Opening Google sign-in...');
 
     try {
-      await setPersistence(auth, browserLocalPersistence);
+      await preparePersistentSession();
       await signInWithPopup(auth, googleProvider);
-      window.location.href = '../dashboard/index.html';
+      window.location.replace('../dashboard/index.html');
     } catch (error) {
       showMessage(getReadableAuthError(error));
     } finally {
