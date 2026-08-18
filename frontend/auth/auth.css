@@ -75,16 +75,55 @@ input:focus {
   border-color: #6477d9;
 }
 
-.primary-button {
-  margin-top: 8px;
+.primary-button,
+.google-button {
+  width: 100%;
   padding: 13px 18px;
-  border: 0;
   border-radius: 8px;
-  background: #3348c8;
-  color: #ffffff;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.primary-button {
+  margin-top: 8px;
+  border: 0;
+  background: #3348c8;
+  color: #ffffff;
+}
+
+.google-button {
+  margin-top: 12px;
+  border: 1px solid #ccd4e2;
+  background: #ffffff;
+  color: #172033;
+}
+
+.primary-button:disabled,
+.google-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 0;
+  color: #7b879d;
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e7ef;
+}
+
+.auth-divider span {
+  flex: 0 0 auto;
 }
 
 .message {
@@ -99,7 +138,8 @@ input:focus {
   font-size: 14px;
 }
 
-.switch-link a {
+.switch-link a,
+.utility-link a {
   color: #3348c8;
   font-weight: 700;
 }
