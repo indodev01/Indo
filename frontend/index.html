@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Indo Dev App</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header class="app-header">
     <a class="app-brand" href="index.html" aria-label="Indo Dev home">
-      <img src="landing/official-logo.svg" alt="Indo Dev">
+      <img src="landing/official-logo.svg?v=4" alt="Indo Dev">
     </a>
 
     <nav class="app-nav" aria-label="Application navigation">
@@ -21,8 +21,8 @@
     </nav>
 
     <div class="app-header-actions">
-      <a class="app-link-button" href="auth/sign-in.html">Sign In</a>
-      <a class="app-primary-button" href="create-app.html">Create App</a>
+      <a id="authAction" class="app-link-button" href="auth/sign-in.html">Sign In</a>
+      <a id="createAction" class="app-primary-button" href="create-app.html">Create App</a>
     </div>
   </header>
 
@@ -30,7 +30,7 @@
     <section class="intro workspace-hero">
       <p class="eyebrow">Indo Dev Workspace</p>
       <h1>Build. Preview. Get Your App.</h1>
-      <p>Create and customize apps without writing complicated code.</p>
+      <p id="workspaceMessage">Create and customize apps without writing complicated code.</p>
       <a class="app-primary-button" href="create-app.html">+ Create New App</a>
     </section>
 
@@ -74,6 +74,6 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>
