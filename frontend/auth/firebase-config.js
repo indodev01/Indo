@@ -1,17 +1,15 @@
-// Firebase configuration for Indo Dev authentication.
-// Replace every REPLACE_ME value with the config from your Firebase web app.
+// Firebase configuration for Indo Dev.
+// These values identify the Firebase web app.
 
 export const firebaseConfig = {
-  apiKey: 'REPLACE_ME',
-  authDomain: 'REPLACE_ME',
-  projectId: 'REPLACE_ME',
-  storageBucket: 'REPLACE_ME',
-  messagingSenderId: 'REPLACE_ME',
-  appId: 'REPLACE_ME'
+  apiKey: 'AIzaSyARtWJ46hs6HEVYAASm19r55EwbycgFY2I',
+  authDomain: 'indo-dev-d150f.firebaseapp.com',
+  projectId: 'indo-dev-d150f',
+  storageBucket: 'indo-dev-d150f.firebasestorage.app',
+  messagingSenderId: '1055323979335',
+  appId: '1:1055323979335:web:ebd7217748446c21b97b62',
+  measurementId: 'G-9KD7XEJEYJ'
 };
 
-export function isFirebaseConfigured() {
-  return !Object.values(firebaseConfig).some(function (value) {
-    return String(value).includes('REPLACE_ME');
-  });
-}
+// Add databaseURL here after the Realtime Database is created.
+export const realtimeDatabaseUrl = '';
