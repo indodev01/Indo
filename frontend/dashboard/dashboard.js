@@ -1,6 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js';
 import {
   getAuth,
+  setPersistence,
+  browserLocalPersistence,
   onAuthStateChanged,
   signOut
 } from 'https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js';
@@ -25,23 +27,36 @@ if (!isFirebaseConfigured()) {
   const auth = getAuth(app);
   const database = getDatabase(app, realtimeDatabaseUrl);
 
-  onAuthStateChanged(auth, async function (user) {
-    if (!user) {
-      window.location.href = '../auth/sign-in.html';
-      return;
-    }
+  signOutButton.disabled = true;
+  showMessage('Restoring your login...');
 
-    showMessage('Loading your workspace...');
+  async function startSession() {
+    await setPersistence(auth, browserLocalPersistence);
 
-    try {
-      const snapshot = await get(ref(database, `users/${user.uid}`));
-      const userData = snapshot.exists() ? snapshot.val() : null;
-      const name = userData?.profile?.name || user.displayName || user.email || 'Builder';
+    onAuthStateChanged(auth, async function (user) {
+      if (!user) {
+        window.location.replace('../auth/sign-in.html');
+        return;
+      }
 
-      showMessage(`Welcome, ${name}. You are signed in as ${user.email || 'Google user'}.`);
-    } catch (error) {
-      showMessage(`Welcome, ${user.displayName || user.email || 'Builder'}. Your account is signed in.`);
-    }
+      signOutButton.disabled = false;
+      showMessage('Loading your workspace...');
+
+      try {
+        const snapshot = await get(ref(database, `users/${user.uid}`));
+        const userData = snapshot.exists() ? snapshot.val() : null;
+        const name = userData?.profile?.name || user.displayName || user.email || 'Builder';
+        showMessage(`Welcome, ${name}. You are signed in as ${user.email || 'Google user'}.`);
+      } catch (error) {
+        showMessage(`Welcome, ${user.displayName || user.email || 'Builder'}. Your account is signed in.`);
+      }
+    });
+  }
+
+  startSession().catch(function (error) {
+    console.error(error);
+    showMessage('Could not restore your login session. Please try again.');
+    signOutButton.disabled = false;
   });
 
   signOutButton.addEventListener('click', async function () {
@@ -50,7 +65,7 @@ if (!isFirebaseConfigured()) {
 
     try {
       await signOut(auth);
-      window.location.href = '../landing/index.html';
+      window.location.replace('../landing/index.html');
     } catch (error) {
       showMessage('Could not sign out. Please try again.');
       signOutButton.disabled = false;
