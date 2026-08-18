@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Builder - Indo Dev</title>
+  <link rel="stylesheet" href="builder.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <a href="index.html" class="back-link">← Dashboard</a>
+      <div>
+        <h1 id="builderTitle">App Builder</h1>
+        <p id="builderSubtitle">Build your app step by step.</p>
+      </div>
+      <button id="previewButton" class="primary-button">Open Preview</button>
+    </header>
+
+    <section class="builder-layout">
+      <aside class="panel">
+        <h2>Components</h2>
+        <button class="component-button" data-component="Heading">Heading</button>
+        <button class="component-button" data-component="Text">Text</button>
+        <button class="component-button" data-component="Button">Button</button>
+        <button class="component-button" data-component="Image">Image</button>
+      </aside>
+
+      <section class="panel canvas-panel">
+        <h2>Canvas</h2>
+        <div id="canvas" class="canvas">
+          <p class="canvas-placeholder">Choose a component to add it here.</p>
+        </div>
+        <p id="message" class="message"></p>
+      </section>
+    </section>
+  </main>
+
+  <script src="builder.js"></script>
+</body>
+</html>
