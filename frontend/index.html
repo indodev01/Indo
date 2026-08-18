@@ -3,14 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Indo Dev App</title>
-
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- Shared application navigation -->
   <header class="app-header">
     <a class="app-brand" href="index.html" aria-label="Indo Dev home">
       <img src="landing/official-logo.svg" alt="Indo Dev">
@@ -30,44 +26,52 @@
     </div>
   </header>
 
-  <!-- Main application container -->
   <main class="app">
-
-    <!-- Introduction -->
-    <section class="intro">
+    <section class="intro workspace-hero">
       <p class="eyebrow">Indo Dev Workspace</p>
       <h1>Build. Preview. Get Your App.</h1>
-      <p>
-        Create and customize apps without writing complicated code.
-      </p>
+      <p>Create and customize apps without writing complicated code.</p>
       <a class="app-primary-button" href="create-app.html">+ Create New App</a>
     </section>
 
-    <!-- Project cards -->
-    <section class="projects">
-      <h2>Your Projects</h2>
-
-      <div class="project-grid">
-        <article class="card">
-          <h3>Start Your First App</h3>
-          <p>Choose a template and start building your app.</p>
-          <a class="card-button" href="create-app.html">Start Building</a>
-        </article>
-
-        <article class="card">
-          <h3>Template Library</h3>
-          <p>Explore starter layouts for different app ideas.</p>
-          <a class="card-button" href="templates.html">View Templates</a>
-        </article>
-
-        <article class="card">
-          <h3>Preview Engine</h3>
-          <p>Preview your app before you publish it.</p>
-          <a class="card-button" href="preview.html">Open Preview</a>
-        </article>
-      </div>
+    <section class="quick-actions" aria-label="Quick actions">
+      <a class="action-card" href="create-app.html">
+        <span class="action-icon">＋</span>
+        <h2>Create New App</h2>
+        <p>Start from a blank app or choose a template.</p>
+      </a>
+      <a class="action-card" href="templates.html">
+        <span class="action-icon">▦</span>
+        <h2>Template Library</h2>
+        <p>Choose a ready-made starting point for your app.</p>
+      </a>
+      <a class="action-card" href="builder.html">
+        <span class="action-icon">◈</span>
+        <h2>App Builder</h2>
+        <p>Add pages and components in a visual builder.</p>
+      </a>
+      <a class="action-card" href="preview.html">
+        <span class="action-icon">◉</span>
+        <h2>Live Preview</h2>
+        <p>See your app before moving to final build steps.</p>
+      </a>
     </section>
 
+    <section class="projects">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Your workspace</p>
+          <h2>Your Projects</h2>
+        </div>
+        <a class="app-link-button" href="create-app.html">New Project</a>
+      </div>
+
+      <div class="project-card empty-project-card">
+        <h3>No projects yet</h3>
+        <p>Your first app will appear here after you create it.</p>
+        <a class="card-button" href="create-app.html">Create Your First App</a>
+      </div>
+    </section>
   </main>
 
   <script src="app.js"></script>
