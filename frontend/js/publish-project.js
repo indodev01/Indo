@@ -1,4 +1,4 @@
-import { supabase } from './auth/supabase-config.js';
+import { supabase } from '../auth/supabase-config.js';
 import { showPublishResult } from './publish-result-ui.js';
 
 const publishButton=document.getElementById('publishButton');
@@ -8,7 +8,7 @@ const projectId=new URLSearchParams(window.location.search).get('projectId');
 
 function setStatus(text){if(status)status.textContent=text}
 function slugify(value){return String(value||'app').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'app'}
-function liveUrl(slug){return new URL(`app/${encodeURIComponent(slug)}`,window.location.href).href}
+function liveUrl(slug){return new URL(`../live-app.html?slug=${encodeURIComponent(slug)}`,window.location.href).href}
 
 async function uniqueSlug(baseSlug){
   const base=slugify(baseSlug);
@@ -32,11 +32,14 @@ async function publishProject(){
     let saved=!beforeUpdated;
     for(let i=0;i<12&&!saved;i+=1){await new Promise(r=>setTimeout(r,300));const check=await supabase.from('projects').select('updated_at').eq('id',projectId).maybeSingle();if(check.error)throw check.error;if(check.data?.updated_at&&check.data.updated_at!==beforeUpdated)saved=true;}
     if(!saved)throw new Error('Could not confirm the latest changes were saved. Please click Save and try Publish again.');
+    const latest=await supabase.from('projects').select('name,app_definition').eq('id',projectId).maybeSingle();
+    if(latest.error||!latest.data)throw latest.error||new Error('Project not found');
     setStatus('Checking live URL...');
-    const requested=before.data?.app_definition?.publishing?.slug||before.data?.name;
-    const slug=await uniqueSlug(requested);
+    const requested=latest.data.app_definition?.publishing?.slug||latest.data.name;
+    const existing=latest.data.app_definition?.publishing?.slug;
+    const slug=existing||await uniqueSlug(requested);
     setStatus('Publishing...');
-    const definition={...(before.data?.app_definition||{}),publishing:{...(before.data?.app_definition?.publishing||{}),slug,published:true,publishedAt:new Date().toISOString()}};
+    const definition={...(latest.data.app_definition||{}),publishing:{...(latest.data.app_definition?.publishing||{}),slug,published:true,publishedAt:new Date().toISOString()}};
     const {error}=await supabase.from('projects').update({status:'published',app_definition:definition,updated_at:new Date().toISOString()}).eq('id',projectId);
     if(error)throw error;
     const url=liveUrl(slug);
