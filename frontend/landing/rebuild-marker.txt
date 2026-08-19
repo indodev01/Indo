@@ -1,1 +1,0 @@
-Full landing page replacement is applied in the next atomic tree commit.
