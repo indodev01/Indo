@@ -1,3 +1,5 @@
+import './auth-visibility-save-bridge.js';
+
 const inspector=document.getElementById('inspectorContent');
 let selectedTarget=null;
 
