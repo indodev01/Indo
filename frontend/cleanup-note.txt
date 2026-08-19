@@ -1,1 +1,0 @@
-Root-level JS is grouped under frontend/js and root-level CSS under frontend/css.
