@@ -1,12 +1,12 @@
 import { supabase } from '../auth/supabase-config.js';
 
 const projectId = new URLSearchParams(location.search).get('projectId');
-const BUILD_FUNCTION = 'start-apk-build-v2';
+const BUILD_FUNCTION = 'start-apk-build-v3';
 const $ = (id) => document.getElementById(id);
 const status = (text) => { const el = $('projectStatus'); if (el) el.textContent = text; };
 
 function closeDialog() { $('apkBuildDialog')?.remove(); }
-function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]); }
+function escapeHtml(value) { return String(value ?? '').replace(/[&<>\"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' })[c]); }
 
 function showDialog(details) {
   closeDialog();
@@ -42,7 +42,7 @@ async function watchBuild(buildId) {
   const poll = async () => {
     try {
       const { data, error } = await supabase.from('app_builds').select('status,artifact_url,error,completed_at').eq('id', buildId).maybeSingle();
-      if (error || !data) return;
+      if (error || !data) return false;
       const message = $('apkBuildMessage');
       const result = $('apkResult');
       if (message) message.textContent = `Build status: ${data.status}`;
@@ -59,9 +59,7 @@ async function watchBuild(buildId) {
     return Date.now() - started > 20 * 60 * 1000;
   };
   if (await poll()) return;
-  const timer = setInterval(async () => {
-    if (await poll()) clearInterval(timer);
-  }, 1000);
+  const timer = setInterval(async () => { if (await poll()) clearInterval(timer); }, 1000);
 }
 
 async function createBuild() {
@@ -82,7 +80,7 @@ async function createBuild() {
     if (buildError) throw buildError;
 
     showDialog({ buildId:build.id, liveUrl, applicationId, versionName });
-    status('APK build • queued');
+    status('APK build • starting');
 
     const { data: dispatched, error: dispatchError } = await supabase.functions.invoke(BUILD_FUNCTION, {
       body: { project_id: project.id, build_id: build.id, live_url: liveUrl, application_id: applicationId, version_name: versionName, build_token: buildToken }
