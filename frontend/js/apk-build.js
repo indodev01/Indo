@@ -1,7 +1,7 @@
 import { supabase } from '../auth/supabase-config.js';
 
 const projectId = new URLSearchParams(location.search).get('projectId');
-const BUILD_FUNCTION = 'start-apk-build';
+const BUILD_FUNCTION = 'start-apk-build-v2';
 const $ = (id) => document.getElementById(id);
 const status = (text) => { const el = $('projectStatus'); if (el) el.textContent = text; };
 
