@@ -1,4 +1,4 @@
-import { supabase } from './auth/supabase-config.js';
+import { supabase } from '../auth/supabase-config.js';
 import { renderPublishedComponent } from './published-component-renderer.js';
 import { mountPublishedWorkflows } from './published-workflow-runtime.js';
 import { mountPublishedAuth } from './published-auth.js';
