@@ -24,8 +24,7 @@ async function readProject() {
 function pushUndo(state) {
   if (!state) return;
   const previous = undoStack[undoStack.length - 1];
-  const encoded = JSON.stringify(state);
-  if (previous && JSON.stringify(previous) === encoded) return;
+  if (previous && JSON.stringify(previous) === JSON.stringify(state)) return;
   undoStack.push(clone(state));
   if (undoStack.length > MAX_HISTORY) undoStack.shift();
 }
@@ -36,12 +35,8 @@ async function restore(state, direction) {
   try {
     const current = await readProject();
     if (!current) return;
-    if (direction === 'undo') {
-      redoStack.push(snapshot(current));
-      pushUndo(state);
-    } else {
-      pushUndo(snapshot(current));
-    }
+    if (direction === 'undo') redoStack.push(snapshot(current));
+    else pushUndo(snapshot(current));
     const { error } = await supabase.from('projects').update({
       pages: clone(state.pages),
       app_definition: clone(state.app_definition),
@@ -70,34 +65,23 @@ async function redo() {
   await restore(target, 'redo');
 }
 
-async function watch() {
-  const data = await readProject();
-  if (!data) return;
-  lastUpdatedAt = data.updated_at;
-  if (!watch.started) {
-    watch.started = true;
-    watch.last = snapshot(data);
-  }
-}
-watch.started = false;
-watch.last = null;
-
 async function poll() {
   if (busy) return;
   const data = await readProject();
   if (!data) return;
   if (!lastUpdatedAt) {
     lastUpdatedAt = data.updated_at;
-    watch.last = snapshot(data);
+    poll.last = snapshot(data);
     return;
   }
   if (data.updated_at !== lastUpdatedAt) {
-    if (watch.last) pushUndo(watch.last);
+    if (poll.last) pushUndo(poll.last);
     redoStack.length = 0;
-    watch.last = snapshot(data);
+    poll.last = snapshot(data);
     lastUpdatedAt = data.updated_at;
   }
 }
+poll.last = null;
 
 function installUI() {
   const actions = document.querySelector('.topbar-actions');
@@ -134,6 +118,6 @@ document.addEventListener('keydown', (event) => {
 });
 
 installUI();
-await watch();
+await poll();
 setInterval(async () => { await poll(); refreshButtons(); }, 2000);
 refreshButtons();
