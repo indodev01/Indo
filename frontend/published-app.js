@@ -5,6 +5,7 @@ import { mountPublishedAuth } from './published-auth.js';
 import { observePublishedAuthVisibility } from './published-auth-visibility.js';
 import { mountWebsiteMode, isWebsiteProject } from './website-mode.js';
 import { applyPublishedResponsive } from './published-responsive.js';
+import { normalizePublishedLayout } from './published-visual-parity.js';
 
 const root=document.getElementById('app');
 const slug=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
@@ -17,6 +18,7 @@ function render(definition,name,pageId){
  root.innerHTML=`<div class="published-shell" style="--primary:${esc(theme.primaryColor||'#5b45f4')};font-family:${esc(theme.fontFamily||'Inter,system-ui,sans-serif')}"><header class="published-header"><h1>${esc(definition?.metadata?.title||name||'Published App')}</h1><p>${esc(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
  const host=document.getElementById('published-components');
  components.forEach((component,index)=>{const el=document.createElement('div');el.className='published-component';el.dataset.index=String(index);el.style.marginBottom='16px';el.innerHTML=renderPublishedComponent(component);host.appendChild(el);});
+ normalizePublishedLayout(root);
  applyPublishedResponsive(root,components);
  mountPublishedAuth(host,{onStateChange:user=>{host.querySelectorAll('[data-auth="user"]').forEach(node=>{node.textContent=user?.email||'Not signed in'});},onError:error=>{host.querySelectorAll('.pub-form-message').forEach(node=>{if(!node.textContent)node.textContent=error?.message||'Authentication failed';});}});
  mountPublishedWorkflows(definition);
