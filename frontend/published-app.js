@@ -2,6 +2,7 @@ import { supabase } from './auth/supabase-config.js';
 import { renderPublishedComponent } from './published-component-renderer.js';
 import { mountPublishedWorkflows } from './published-workflow-runtime.js';
 import { mountPublishedAuth } from './published-auth.js';
+import { observePublishedAuthVisibility } from './published-auth-visibility.js';
 
 const root=document.getElementById('app');
 const slug=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
@@ -13,6 +14,7 @@ function render(definition,name){
  components.forEach(component=>{const el=document.createElement('div');el.className='published-component';el.style.marginBottom='16px';el.innerHTML=renderPublishedComponent(component);host.appendChild(el);});
  mountPublishedAuth(host,{onStateChange:user=>{host.querySelectorAll('[data-auth="user"]').forEach(node=>{node.textContent=user?.email||'Not signed in'});},onError:error=>{host.querySelectorAll('.pub-form-message').forEach(node=>{if(!node.textContent)node.textContent=error?.message||'Authentication failed';});}});
  mountPublishedWorkflows(definition);
+ observePublishedAuthVisibility(root);
 }
 async function load(){if(!slug){root.innerHTML='<p style="padding:32px">Missing app slug.</p>';return;}root.innerHTML='<p style="padding:32px">Loading app…</p>';const result=await supabase.from('projects').select('name,app_definition,status').eq('status','published').eq('app_definition->publishing->>slug',slug).limit(1).maybeSingle();if(result.error){console.error(result.error);root.innerHTML='<p style="padding:32px">Unable to load this app.</p>';return;}if(!result.data){root.innerHTML='<p style="padding:32px">Published app not found.</p>';return;}render(result.data.app_definition||{},result.data.name);}
 load();
