@@ -1,15 +1,17 @@
 import { supabase } from './auth/supabase-config.js';
+import { renderPublishedComponent } from './published-component-renderer.js';
 
 const root=document.getElementById('app');
 const slug=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
 
-function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(definition,name){
  const page=definition?.pages?.home||Object.values(definition?.pages||{})[0];
  const components=page?.components||definition?.componentsList||[];
- root.innerHTML=`<div style="max-width:1100px;margin:0 auto;padding:32px"><header style="margin-bottom:28px"><h1 style="margin:0 0 8px">${escapeHtml(definition?.metadata?.title||name||'Published App')}</h1><p style="margin:0;color:#64748b">${escapeHtml(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
+ const theme=definition?.metadata?.theme||{};
+ root.innerHTML=`<div style="--primary:${esc(theme.primaryColor||'#5b45f4')};font-family:${esc(theme.fontFamily||'Inter,system-ui,sans-serif')};max-width:1100px;margin:0 auto;padding:32px"><header style="margin-bottom:28px"><h1 style="margin:0 0 8px">${esc(definition?.metadata?.title||name||'Published App')}</h1><p style="margin:0;color:#64748b">${esc(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
  const host=document.getElementById('published-components');
- components.forEach((component)=>{const el=document.createElement('div');el.style.marginBottom='16px';el.innerHTML=component?.props?.text||component?.props?.label||component?.props?.content||`<div style="padding:18px;border:1px solid #e2e8f0;border-radius:12px">${escapeHtml(component?.type||'Component')}</div>`;host.appendChild(el);});
+ components.forEach(component=>{const el=document.createElement('div');el.className='published-component';el.style.marginBottom='16px';el.innerHTML=renderPublishedComponent(component);host.appendChild(el);});
 }
 async function load(){
  if(!slug){root.innerHTML='<p style="padding:32px">Missing app slug.</p>';return;}
