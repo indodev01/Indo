@@ -9,6 +9,17 @@ function setStatus(text){if(status)status.textContent=text;}
 function slugify(value){return String(value||'app').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'app'}
 function liveUrl(slug){return new URL(`app/${encodeURIComponent(slug)}`,window.location.href).href}
 
+async function uniqueSlug(baseSlug){
+  const base=slugify(baseSlug);
+  for(let attempt=0;attempt<100;attempt+=1){
+    const candidate=attempt===0?base:`${base}-${attempt+1}`;
+    const query=await supabase.from('projects').select('id').eq('status','published').eq('app_definition->publishing->>slug',candidate).neq('id',projectId).limit(1);
+    if(query.error)throw query.error;
+    if(!query.data?.length)return candidate;
+  }
+  return `${base}-${Date.now().toString(36).slice(-6)}`;
+}
+
 async function publishProject(){
   if(!projectId)return;
   publishButton.disabled=true;setStatus('Saving changes...');
@@ -20,8 +31,10 @@ async function publishProject(){
     let saved=!beforeUpdated;
     for(let i=0;i<12&&!saved;i+=1){await new Promise(r=>setTimeout(r,300));const check=await supabase.from('projects').select('updated_at').eq('id',projectId).maybeSingle();if(check.error)throw check.error;if(check.data?.updated_at&&check.data.updated_at!==beforeUpdated)saved=true;}
     if(!saved)throw new Error('Could not confirm the latest changes were saved. Please click Save and try Publish again.');
+    setStatus('Checking live URL...');
+    const requested=before.data?.app_definition?.publishing?.slug||before.data?.name;
+    const slug=await uniqueSlug(requested);
     setStatus('Publishing...');
-    const slug=slugify(before.data?.app_definition?.publishing?.slug||before.data?.name);
     const definition={...(before.data?.app_definition||{}),publishing:{...(before.data?.app_definition?.publishing||{}),slug,published:true,publishedAt:new Date().toISOString()}};
     const {error}=await supabase.from('projects').update({status:'published',app_definition:definition,updated_at:new Date().toISOString()}).eq('id',projectId);
     if(error)throw error;
