@@ -61,24 +61,44 @@ jobs:
           gradle-version: '8.9'
           cache-read-only: false
 
+      - name: Prepare stable signing key
+        shell: bash
+        env:
+          KEYSTORE_B64: ${{ secrets.INDO_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_B64"
+          mkdir -p signing
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > signing/indo-release.jks
+          test -s signing/indo-release.jks
+
       - name: Verify Gradle environment
         run: gradle --version
 
-      - name: Build debug APK
+      - name: Build signed release APK
         id: apk
         continue-on-error: true
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.INDO_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.INDO_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.INDO_KEY_PASSWORD }}
         run: >-
-          gradle --no-daemon --build-cache --parallel --stacktrace --warning-mode all assembleDebug
+          gradle --no-daemon --build-cache --parallel --stacktrace --warning-mode all assembleRelease
           -PLIVE_URL="${{ inputs.live_url }}"
           -PAPPLICATION_ID="${{ inputs.application_id }}"
           -PVERSION_NAME="${{ inputs.version_name }}"
+          -PVERSION_CODE="${{ github.run_number }}"
+          -PRELEASE_KEYSTORE_PATH="signing/indo-release.jks"
+          -PRELEASE_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+          -PRELEASE_KEY_ALIAS="$KEY_ALIAS"
+          -PRELEASE_KEY_PASSWORD="$KEY_PASSWORD"
 
       - name: Report build failure
         if: steps.apk.outcome == 'failure'
         run: |
           curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
             -H 'content-type: application/json' \
-            --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Gradle assembleDebug failed. Open the latest GitHub Actions run for the full stacktrace."}'
+            --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Signed release APK build failed. Check the latest GitHub Actions run for logs."}'
           exit 1
 
       - name: Upload APK artifact
@@ -86,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: indo-apk-${{ inputs.version_name }}
-          path: android-wrapper/app/build/outputs/apk/debug/app-debug.apk
+          path: android-wrapper/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 3
 
@@ -97,7 +117,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: indo-apk-${{ inputs.build_token }}
-          APK_PATH: android-wrapper/app/build/outputs/apk/debug/app-debug.apk
+          APK_PATH: android-wrapper/app/build/outputs/apk/release/app-release.apk
           APK_NAME: indo-app-v${{ inputs.version_name }}.apk
         run: |
           set -euo pipefail
@@ -106,7 +126,7 @@ jobs:
             "/tmp/$APK_NAME" \
             --repo "${{ github.repository }}" \
             --title "Indo APK ${{ inputs.version_name }}" \
-            --notes "Generated APK for Indo project build ${{ inputs.build_token }}." \
+            --notes "Generated signed APK for Indo project build ${{ inputs.build_token }}." \
             --target "${{ github.sha }}"
 
       - name: Report release failure
