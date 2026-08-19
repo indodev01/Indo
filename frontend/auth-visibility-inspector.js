@@ -9,7 +9,10 @@ function controlMarkup(value='always'){
   wrap.querySelector('select').value=value;
   wrap.querySelector('select').addEventListener('change',e=>{
     const mode=e.target.value;
-    if(selectedTarget){selectedTarget.dataset.authVisible=mode;selectedTarget.dispatchEvent(new CustomEvent('indo:auth-visibility-change',{bubbles:true,detail:{mode}}));}
+    if(!selectedTarget)return;
+    selectedTarget.dataset.authVisible=mode;
+    selectedTarget.dispatchEvent(new CustomEvent('indo:auth-visibility-change',{bubbles:true,detail:{mode}}));
+    window.dispatchEvent(new CustomEvent('indo:auth-visibility-changed',{detail:{index:selectedTarget.dataset.index??null,mode,element:selectedTarget}}));
   });
   return wrap;
 }
@@ -22,10 +25,14 @@ function refresh(target){
   inspector.appendChild(controlMarkup(selectedTarget.dataset.authVisible||'always'));
 }
 
-window.addEventListener('indo:component-selected',event=>refresh(event.detail?.element));
+function resolveSelected(){return document.querySelector('.canvas-item.selected')||null}
+
+window.addEventListener('indo:component-selected',event=>refresh(event.detail?.element||resolveSelected()));
 document.addEventListener('click',event=>{
-  const target=event.target.closest?.('[data-component-id],[data-component-index],[data-auth-visible]');
-  if(target)refresh(target);
+  const target=event.target.closest?.('.canvas-item,[data-component-id],[data-component-index],[data-auth-visible]');
+  if(target)requestAnimationFrame(()=>refresh(resolveSelected()||target));
 });
 
+const observer=new MutationObserver(()=>{const target=resolveSelected();if(target&&target!==selectedTarget)refresh(target)});
+if(document.body)observer.observe(document.body,{attributes:true,attributeFilter:['class'],subtree:true});
 window.IndoAuthVisibilityInspector={refresh};
