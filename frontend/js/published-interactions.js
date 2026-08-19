@@ -1,4 +1,4 @@
-import { supabase } from './auth/supabase-config.js';
+import { supabase } from '../auth/supabase-config.js';
 
 function routeHref(value){const raw=String(value||'').trim();if(!raw)return null;if(/^https?:\/\//i.test(raw)||raw.startsWith('/'))return raw;if(raw.startsWith('#'))return raw;return `#page=${encodeURIComponent(raw)}`;}
 
