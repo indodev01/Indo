@@ -1,1 +1,0 @@
-The official user-supplied Indo Dev logo is represented by the clean SVG asset used by the landing header.
