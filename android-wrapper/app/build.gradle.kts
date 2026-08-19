@@ -22,14 +22,25 @@ android {
         versionName = buildVersionName
     }
 
-    buildFeatures { buildConfig = true }
+    buildFeatures {
+        buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 
     buildTypes {
-        getByName("release") { isMinifyEnabled = false }
         getByName("debug") {
             buildConfigField("String", "LIVE_URL", "\"$liveUrl\"")
         }
         getByName("release") {
+            isMinifyEnabled = false
             buildConfigField("String", "LIVE_URL", "\"$liveUrl\"")
         }
     }
