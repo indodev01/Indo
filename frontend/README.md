@@ -1,12 +1,4 @@
-# Indo Dev Frontend
+Indo frontend asset structure.
 
-Flutter frontend foundation for the Indo Dev no-code app builder.
-
-## Current MVP screen
-
-- Indo Dev dashboard shell
-- Create New App entry point
-- Project cards for templates and preview
-- Responsive Material 3 layout
-
-The product direction includes accounts, templates, visual building, preview, APK generation, trials, activation, subscriptions, data storage, and platform ads. See the root README for the full MVP scope.
+Root-level JavaScript lives in `js/` and root-level CSS lives in `css/`.
+Feature-specific folders such as `auth/`, `dashboard/`, `landing/`, and `app/` retain their local page assets.
