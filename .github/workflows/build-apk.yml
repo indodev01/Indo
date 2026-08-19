@@ -1,0 +1,70 @@
+name: Build Indo APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      live_url:
+        description: 'Published Indo app URL'
+        required: true
+        type: string
+      application_id:
+        description: 'Android application ID'
+        required: false
+        default: 'com.indodev01.generated'
+        type: string
+      version_name:
+        description: 'App version'
+        required: false
+        default: '1.0'
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: android-wrapper
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Patch build parameters
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import pathlib, re, os
+          p = pathlib.Path('app/build.gradle.kts')
+          s = p.read_text()
+          app_id = os.environ['APP_ID']
+          version = os.environ['VERSION_NAME']
+          s = re.sub(r'applicationId = "[^"]+"', f'applicationId = "{app_id}"', s, count=1)
+          s = re.sub(r'versionName = "[^"]+"', f'versionName = "{version}"', s, count=1)
+          p.write_text(s)
+          PY
+        env:
+          APP_ID: ${{ inputs.application_id }}
+          VERSION_NAME: ${{ inputs.version_name }}
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug -PLIVE_URL="${{ inputs.live_url }}"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: indo-apk-${{ inputs.version_name }}
+          path: android-wrapper/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
