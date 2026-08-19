@@ -34,7 +34,7 @@ signUpForm.addEventListener('submit', async (event) => {
     if (data.session) {
       await saveUserProfile(data.user, name);
       showMessage('Account created. Opening your workspace...');
-      window.location.replace('../index.html');
+      window.location.replace('../html/index.html');
       return;
     }
     showMessage('Account created. Email confirmation is currently required before signing in.');
