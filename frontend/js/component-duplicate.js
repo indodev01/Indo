@@ -1,4 +1,4 @@
-import { supabase } from './auth/supabase-config.js';
+import { supabase } from '../auth/supabase-config.js';
 
 const projectId = new URLSearchParams(location.search).get('projectId');
 const CLIPBOARD_KEY = 'indo-component-clipboard';
