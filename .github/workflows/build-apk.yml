@@ -22,6 +22,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: indo-apk-${{ inputs.build_token }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,9 +34,14 @@ jobs:
     defaults:
       run:
         working-directory: android-wrapper
+    env:
+      GRADLE_OPTS: '-Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false'
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Notify build started
         run: |
@@ -46,33 +55,20 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Set up Gradle with cache
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-
-      - name: Patch build parameters
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import pathlib, re, os
-          p = pathlib.Path('app/build.gradle.kts')
-          s = p.read_text()
-          app_id = os.environ['APP_ID']
-          version = os.environ['VERSION_NAME']
-          s = re.sub(r'applicationId = "[^"]+"', f'applicationId = "{app_id}"', s, count=1)
-          s = re.sub(r'versionName = "[^"]+"', f'versionName = "{version}"', s, count=1)
-          p.write_text(s)
-          PY
-        env:
-          APP_ID: ${{ inputs.application_id }}
-          VERSION_NAME: ${{ inputs.version_name }}
+          cache-read-only: false
 
       - name: Build debug APK
         id: apk
         continue-on-error: true
-        run: gradle --no-daemon assembleDebug -PLIVE_URL="${{ inputs.live_url }}"
+        run: >-
+          gradle --no-daemon --build-cache --parallel assembleDebug
+          -PLIVE_URL="${{ inputs.live_url }}"
+          -PAPPLICATION_ID="${{ inputs.application_id }}"
+          -PVERSION_NAME="${{ inputs.version_name }}"
 
       - name: Report build failure
         if: steps.apk.outcome == 'failure'
@@ -88,6 +84,7 @@ jobs:
           name: indo-apk-${{ inputs.version_name }}
           path: android-wrapper/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 3
 
       - name: Report build success
         if: success()
