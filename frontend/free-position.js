@@ -28,7 +28,17 @@ function addHandles(node) { if (node.querySelector('.free-size-handle')) return;
 function ensureCanvasHeight(layout) { const bottom = layout.y + layout.height + 80; canvas.style.minHeight = `${Math.max(720, bottom)}px`; }
 function getPoint(event) { const rect = canvas.getBoundingClientRect(); return { x: event.clientX - rect.left + canvas.scrollLeft, y: event.clientY - rect.top + canvas.scrollTop }; }
 function saveLocal(node, layout) { layouts[layoutKey(node)] = { ...layout }; writeLayouts(); }
-function startMove(node, event) { if (event.button !== 0 || !isHomePage()) return; if (event.target.closest('[data-free-position-handle], .header-menu-toggle, .header-title-edit, .header-menu-panel')) return; const startLayout = normalizeLayout(node, componentForNode(node)); const point = getPoint(event); activePointer = { kind: 'move', node, startX: point.x, startY: point.y, startLayout, moved: false, pointerId: event.pointerId }; setSelected(node); addHandles(node); node.style.cursor = 'grabbing'; try { node.setPointerCapture?.(event.pointerId); } catch {} event.preventDefault(); event.stopPropagation(); }
+function startMove(node, event) {
+  if (event.button !== 0 || !isHomePage()) return;
+  const innerControl = event.target.closest('[data-free-position-handle], .header-menu-toggle, .header-title-wrap, .header-title-edit, .header-menu-panel');
+  if (innerControl) return;
+  const startLayout = normalizeLayout(node, componentForNode(node));
+  const point = getPoint(event);
+  activePointer = { kind: 'move', node, startX: point.x, startY: point.y, startLayout, moved: false, pointerId: event.pointerId };
+  setSelected(node); addHandles(node); node.style.cursor = 'grabbing';
+  try { node.setPointerCapture?.(event.pointerId); } catch {}
+  event.preventDefault(); event.stopPropagation();
+}
 function startResize(node, event, position) { if (event.button !== 0 || !isHomePage()) return; const startLayout = normalizeLayout(node, componentForNode(node)); const point = getPoint(event); activePointer = { kind: 'resize', node, position, startX: point.x, startY: point.y, startLayout, moved: false, pointerId: event.pointerId }; setSelected(node); addHandles(node); node.style.cursor = 'grabbing'; try { node.setPointerCapture?.(event.pointerId); } catch {} event.preventDefault(); event.stopPropagation(); }
 function clampLayout(layout) { layout.width = Math.max(80, layout.width); layout.height = Math.max(36, layout.height); layout.x = Math.max(-20, layout.x); layout.y = Math.max(-20, layout.y); ensureCanvasHeight(layout); return layout; }
 function pointerMove(event) { if (!activePointer) return; const point = getPoint(event); const dx = point.x - activePointer.startX; const dy = point.y - activePointer.startY; const base = activePointer.startLayout; const next = { ...base }; if (Math.abs(dx) > 3 || Math.abs(dy) > 3) activePointer.moved = true; if (activePointer.kind === 'move') { next.x = base.x + dx; next.y = base.y + dy; } else { const pos = activePointer.position; if (pos.includes('right')) next.width = base.width + dx; if (pos.includes('left')) { next.width = base.width - dx; next.x = base.x + dx; } if (pos.includes('bottom')) next.height = base.height + dy; if (pos.includes('top')) { next.height = base.height - dy; next.y = base.y + dy; } if (next.width < 80) { if (pos.includes('left')) next.x = base.x + base.width - 80; next.width = 80; } if (next.height < 36) { if (pos.includes('top')) next.y = base.y + base.height - 36; next.height = 36; } } clampLayout(next); saveLocal(activePointer.node, next); applyLayout(activePointer.node, next); activePointer.node.style.cursor = 'grabbing'; if (activePointer.moved) event.preventDefault(); }
