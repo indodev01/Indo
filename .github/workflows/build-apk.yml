@@ -61,11 +61,14 @@ jobs:
           gradle-version: '8.9'
           cache-read-only: false
 
+      - name: Verify Gradle environment
+        run: gradle --version
+
       - name: Build debug APK
         id: apk
         continue-on-error: true
         run: >-
-          gradle --no-daemon --build-cache --parallel assembleDebug
+          gradle --no-daemon --build-cache --parallel --stacktrace --warning-mode all assembleDebug
           -PLIVE_URL="${{ inputs.live_url }}"
           -PAPPLICATION_ID="${{ inputs.application_id }}"
           -PVERSION_NAME="${{ inputs.version_name }}"
@@ -75,7 +78,7 @@ jobs:
         run: |
           curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
             -H 'content-type: application/json' \
-            --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Gradle assembleDebug failed. See the GitHub Actions run for logs."}'
+            --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Gradle assembleDebug failed. Open the latest GitHub Actions run for the full stacktrace."}'
           exit 1
 
       - name: Upload APK
