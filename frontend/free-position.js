@@ -1,210 +1,262 @@
 import { supabase } from './auth/supabase-config.js';
-import { normalizeDefinition, syncLegacyFields } from './app-definition.js';
+import { normalizeDefinition } from './app-definition.js';
 
 const projectId = new URLSearchParams(window.location.search).get('projectId');
 const canvas = document.getElementById('canvas');
+const pageStatus = document.getElementById('pageStatus');
+const projectStatus = document.getElementById('projectStatus');
+const saveButton = document.getElementById('saveButton');
+const STORAGE_KEY = projectId ? `indo:home-layout:${projectId}` : '';
+
 let project = null;
 let definition = null;
-let saveTimer = 0;
+let layouts = readLayouts();
+let activePointer = null;
+let saveMergeTimer = 0;
 
-const DEFAULT_POSITION = { x: 0, y: 0, width: null, height: 64 };
-
-function activePageId() {
+function readLayouts() {
+  if (!STORAGE_KEY) return {};
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch { return {}; }
+}
+function writeLayouts() {
+  if (!STORAGE_KEY) return;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layouts)); } catch {}
+}
+function isHomePage() {
+  const name = String(pageStatus?.textContent || '').trim().toLowerCase();
+  return name === 'home' || name === '';
+}
+function currentPageId() {
   if (!definition?.pages) return null;
-  const pageName = (document.getElementById('pageStatus')?.textContent || '').trim().toLowerCase();
-  const match = Object.entries(definition.pages).find(([id, page]) => String(page.name || '').trim().toLowerCase() === pageName);
-  return match?.[0] || Object.keys(definition.pages)[0] || null;
+  const wanted = String(pageStatus?.textContent || '').trim().toLowerCase();
+  const hit = Object.entries(definition.pages).find(([id, page]) => String(page.name || '').trim().toLowerCase() === wanted);
+  return hit?.[0] || Object.keys(definition.pages)[0] || null;
 }
-
 function currentPage() {
-  const id = activePageId();
-  return id ? definition.pages[id] : null;
+  const id = currentPageId();
+  return id ? definition?.pages?.[id] : null;
 }
-
-function headerComponentForNode(node) {
-  const id = node.dataset.headerComponent;
+function componentForNode(node) {
   const page = currentPage();
-  if (!page) return null;
-  return (page.components || []).find((component) => component.id === id && component.type === 'Header') || null;
+  const index = Number(node.dataset.index);
+  if (!page || !Number.isInteger(index)) return null;
+  return page.components?.[index] || null;
 }
-
-function normalizePosition(component) {
-  const source = component?.props?.position || {};
+function layoutKey(node) { return node.dataset.index || '0'; }
+function normalizeLayout(node, component) {
+  const saved = component?.props?.position;
+  if (saved) {
+    return {
+      x: Number(saved.x) || 0,
+      y: Number(saved.y) || 0,
+      width: Number(saved.width) || Math.max(160, Math.round(node.getBoundingClientRect().width || 160)),
+      height: Number(saved.height) || Math.max(48, Math.round(node.getBoundingClientRect().height || 48))
+    };
+  }
+  const cached = layouts[layoutKey(node)];
+  if (cached) return { ...cached };
+  const cr = canvas.getBoundingClientRect();
+  const r = node.getBoundingClientRect();
   return {
-    x: Number.isFinite(Number(source.x)) ? Number(source.x) : DEFAULT_POSITION.x,
-    y: Number.isFinite(Number(source.y)) ? Number(source.y) : DEFAULT_POSITION.y,
-    width: Number.isFinite(Number(source.width)) && Number(source.width) > 0 ? Number(source.width) : null,
-    height: Number.isFinite(Number(source.height)) && Number(source.height) > 0 ? Number(source.height) : DEFAULT_POSITION.height
+    x: Math.max(12, Math.round(r.left - cr.left + canvas.scrollLeft)),
+    y: Math.max(12, Math.round(r.top - cr.top + canvas.scrollTop)),
+    width: Math.max(80, Math.round(r.width || 160)),
+    height: Math.max(36, Math.round(r.height || 48))
   };
 }
-
-function applyPosition(node, component) {
-  const appHeader = node.querySelector('.app-header');
-  if (!appHeader || !component) return;
-  const position = normalizePosition(component);
+function applyLayout(node, layout) {
   node.classList.add('free-position-item');
   node.draggable = false;
-  node.style.transform = `translate(${position.x}px, ${position.y}px)`;
-  if (position.width) appHeader.style.width = `${position.width}px`;
-  else appHeader.style.width = '100%';
-  appHeader.style.minHeight = `${position.height}px`;
-  appHeader.style.height = `${position.height}px`;
-  appHeader.style.boxSizing = 'border-box';
+  node.style.position = 'absolute';
+  node.style.transform = `translate(${Math.round(layout.x)}px,${Math.round(layout.y)}px)`;
+  node.style.width = `${Math.max(80, Math.round(layout.width))}px`;
+  node.style.height = `${Math.max(36, Math.round(layout.height))}px`;
+  node.style.boxSizing = 'border-box';
 }
-
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(savePositions, 250);
+function setSelected(node) {
+  canvas?.querySelectorAll('.free-position-item.selected').forEach((item) => item.classList.remove('selected'));
+  if (node) node.classList.add('selected');
 }
-
-async function savePositions() {
-  if (!projectId || !definition || !project) return;
-  try {
-    const synced = syncLegacyFields(definition);
-    const { error } = await supabase
-      .from('projects')
-      .update({ pages: synced.pages, app_definition: synced.appDefinition, updated_at: new Date().toISOString() })
-      .eq('id', projectId);
-    if (error) throw error;
-  } catch (error) {
-    console.error('Position save failed', error);
-    const status = document.getElementById('projectStatus');
-    if (status) status.textContent = 'Position save failed';
-  }
-}
-
-function updateComponentPosition(component, next) {
-  component.props = { ...(component.props || {}), position: { ...normalizePosition(component), ...next } };
-  scheduleSave();
-}
-
-function ensureHandle(node, position, className, cursor) {
-  const appHeader = node.querySelector('.app-header');
-  if (!appHeader) return null;
-  let handle = appHeader.querySelector(`.${className}`);
-  if (handle) return handle;
-  handle = document.createElement('div');
-  handle.className = className;
-  handle.dataset.freePositionHandle = position;
-  handle.style.cursor = cursor;
-  appHeader.appendChild(handle);
-  return handle;
-}
-
-function startMove(node, component, event) {
-  if (event.button !== 0) return;
-  if (event.target.closest('.header-title-edit, .header-menu-toggle, .header-menu-panel, .free-size-handle')) return;
-  event.preventDefault();
-  event.stopPropagation();
-  const start = normalizePosition(component);
-  const startX = event.clientX;
-  const startY = event.clientY;
-  const onMove = (moveEvent) => {
-    const nextX = Math.max(-40, start.x + moveEvent.clientX - startX);
-    const nextY = Math.max(-40, start.y + moveEvent.clientY - startY);
-    const next = { x: Math.round(nextX), y: Math.round(nextY) };
-    node.style.transform = `translate(${next.x}px, ${next.y}px)`;
-    component.props = { ...(component.props || {}), position: { ...start, ...next } };
-  };
-  const onUp = () => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    scheduleSave();
-  };
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp, { once: true });
-}
-
-function startResize(node, component, event, handlePosition) {
-  event.preventDefault();
-  event.stopPropagation();
-  const start = normalizePosition(component);
-  const header = node.querySelector('.app-header');
-  if (!header) return;
-  const startWidth = start.width || Math.round(header.getBoundingClientRect().width);
-  const startHeight = start.height || Math.round(header.getBoundingClientRect().height);
-  const startX = event.clientX;
-  const startY = event.clientY;
-  const startPosX = start.x;
-  const startPosY = start.y;
-
-  const onMove = (moveEvent) => {
-    const dx = moveEvent.clientX - startX;
-    const dy = moveEvent.clientY - startY;
-    let width = startWidth;
-    let height = startHeight;
-    let x = startPosX;
-    let y = startPosY;
-
-    if (handlePosition.includes('right')) width = Math.max(160, startWidth + dx);
-    if (handlePosition.includes('left')) { width = Math.max(160, startWidth - dx); x = startPosX + dx; }
-    if (handlePosition.includes('bottom')) height = Math.max(48, startHeight + dy);
-    if (handlePosition.includes('top')) { height = Math.max(48, startHeight - dy); y = startPosY + dy; }
-
-    header.style.width = `${Math.round(width)}px`;
-    header.style.height = `${Math.round(height)}px`;
-    node.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-    component.props = { ...(component.props || {}), position: { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) } };
-  };
-
-  const onUp = () => {
-    window.removeEventListener('pointermove', onMove);
-    window.removeEventListener('pointerup', onUp);
-    scheduleSave();
-  };
-  window.addEventListener('pointermove', onMove);
-  window.addEventListener('pointerup', onUp, { once: true });
-}
-
-function enhanceNode(node) {
-  if (!node.classList.contains('canvas-header-component')) return;
-  const component = headerComponentForNode(node);
-  if (!component || node.dataset.freePositionEnhanced === '1') {
-    if (component) applyPosition(node, component);
-    return;
-  }
-  node.dataset.freePositionEnhanced = '1';
-  applyPosition(node, component);
-
-  const appHeader = node.querySelector('.app-header');
-  appHeader.title = 'Drag header to move • Use corner handles to resize';
-  appHeader.addEventListener('pointerdown', (event) => startMove(node, component, event));
-
-  ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach((pos) => {
-    const cursor = pos === 'top-left' || pos === 'bottom-right' ? 'nwse-resize' : 'nesw-resize';
-    const handle = ensureHandle(node, pos, `free-size-handle free-size-handle-${pos}`, cursor);
-    handle.addEventListener('pointerdown', (event) => startResize(node, component, event, pos));
+function addHandles(node) {
+  if (node.querySelector('.free-size-handle')) return;
+  const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+  positions.forEach((position) => {
+    const handle = document.createElement('div');
+    handle.className = `free-size-handle free-size-handle-${position}`;
+    handle.dataset.freePositionHandle = position;
+    node.appendChild(handle);
   });
 }
+function ensureCanvasHeight(layout) {
+  const bottom = layout.y + layout.height + 80;
+  canvas.style.minHeight = `${Math.max(720, bottom)}px`;
+}
+function getPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left + canvas.scrollLeft, y: event.clientY - rect.top + canvas.scrollTop };
+}
+function saveLocal(node, layout) {
+  layouts[layoutKey(node)] = { ...layout };
+  writeLayouts();
+}
+function startMove(node, event) {
+  if (event.button !== 0 || !isHomePage()) return;
+  if (event.target.closest('[data-free-position-handle], .header-menu-toggle, .header-title-edit, .header-menu-panel')) return;
+  const startLayout = normalizeLayout(node, componentForNode(node));
+  const point = getPoint(event);
+  activePointer = { kind: 'move', node, startX: point.x, startY: point.y, startLayout, moved: false };
+  setSelected(node);
+  addHandles(node);
+  event.preventDefault();
+  event.stopPropagation();
+}
+function startResize(node, event, position) {
+  if (event.button !== 0 || !isHomePage()) return;
+  const startLayout = normalizeLayout(node, componentForNode(node));
+  const point = getPoint(event);
+  activePointer = { kind: 'resize', node, position, startX: point.x, startY: point.y, startLayout, moved: false };
+  setSelected(node);
+  addHandles(node);
+  event.preventDefault();
+  event.stopPropagation();
+}
+function clampLayout(layout) {
+  layout.width = Math.max(80, layout.width);
+  layout.height = Math.max(36, layout.height);
+  layout.x = Math.max(-20, layout.x);
+  layout.y = Math.max(-20, layout.y);
+  ensureCanvasHeight(layout);
+  return layout;
+}
+function pointerMove(event) {
+  if (!activePointer) return;
+  const point = getPoint(event);
+  const dx = point.x - activePointer.startX;
+  const dy = point.y - activePointer.startY;
+  const base = activePointer.startLayout;
+  const next = { ...base };
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) activePointer.moved = true;
 
+  if (activePointer.kind === 'move') {
+    next.x = base.x + dx;
+    next.y = base.y + dy;
+  } else {
+    const pos = activePointer.position;
+    if (pos.includes('right')) next.width = base.width + dx;
+    if (pos.includes('left')) { next.width = base.width - dx; next.x = base.x + dx; }
+    if (pos.includes('bottom')) next.height = base.height + dy;
+    if (pos.includes('top')) { next.height = base.height - dy; next.y = base.y + dy; }
+    if (next.width < 80) { if (pos.includes('left')) next.x = base.x + base.width - 80; next.width = 80; }
+    if (next.height < 36) { if (pos.includes('top')) next.y = base.y + base.height - 36; next.height = 36; }
+  }
+  clampLayout(next);
+  saveLocal(activePointer.node, next);
+  applyLayout(activePointer.node, next);
+  if (activePointer.moved) event.preventDefault();
+}
+function pointerUp() {
+  if (!activePointer) return;
+  const node = activePointer.node;
+  const moved = activePointer.moved;
+  activePointer = null;
+  if (moved) setSelected(node);
+  scheduleMergeAfterSave();
+}
+function enhanceNode(node) {
+  if (!isHomePage()) return;
+  const component = componentForNode(node);
+  if (!component) return;
+  const layout = normalizeLayout(node, component);
+  saveLocal(node, layout);
+  applyLayout(node, layout);
+  addHandles(node);
+  if (node.dataset.freePositionEnhanced === '1') return;
+  node.dataset.freePositionEnhanced = '1';
+  node.addEventListener('pointerdown', (event) => {
+    const handle = event.target.closest?.('[data-free-position-handle]');
+    if (handle) startResize(node, event, handle.dataset.freePositionHandle);
+    else startMove(node, event);
+  }, { passive: false });
+  node.addEventListener('click', () => setSelected(node));
+}
+function resetNonHome() {
+  if (isHomePage()) return;
+  canvas.classList.remove('home-freeform');
+  canvas?.querySelectorAll('.free-position-item').forEach((node) => {
+    node.classList.remove('free-position-item', 'selected');
+    node.dataset.freePositionEnhanced = '';
+    node.style.position = '';
+    node.style.transform = '';
+    node.style.width = '';
+    node.style.height = '';
+  });
+}
+function applyAll() {
+  if (!canvas) return;
+  if (!isHomePage()) { resetNonHome(); return; }
+  canvas.classList.add('home-freeform');
+  canvas.querySelectorAll('.canvas-item').forEach(enhanceNode);
+}
 async function loadDefinition() {
   if (!projectId) return;
   const auth = await supabase.auth.getUser();
   if (auth.error || !auth.data.user) return;
-  const result = await supabase
-    .from('projects')
-    .select('id,user_id,name,description,app_definition,pages,updated_at')
-    .eq('id', projectId)
-    .eq('user_id', auth.data.user.id)
-    .maybeSingle();
+  const result = await supabase.from('projects').select('id,user_id,name,description,app_definition,pages,updated_at').eq('id', projectId).eq('user_id', auth.data.user.id).maybeSingle();
   if (result.error || !result.data) return;
   project = result.data;
   definition = normalizeDefinition(project);
 }
-
-function applyAll() {
-  if (!canvas) return;
-  canvas.querySelectorAll('.canvas-header-component').forEach(enhanceNode);
+async function mergeLayoutsToServer() {
+  if (!projectId || !Object.keys(layouts).length) return;
+  try {
+    const auth = await supabase.auth.getUser();
+    const user = auth.data?.user;
+    if (!user) return;
+    const result = await supabase.from('projects').select('id,user_id,name,description,app_definition,pages,updated_at').eq('id', projectId).eq('user_id', user.id).maybeSingle();
+    if (result.error || !result.data) return;
+    const latest = normalizeDefinition(result.data);
+    const pageId = Object.keys(latest.pages).find((id) => String(latest.pages[id].name || '').toLowerCase() === 'home') || Object.keys(latest.pages)[0];
+    const page = latest.pages[pageId];
+    if (!page) return;
+    page.components = (page.components || []).map((component, index) => {
+      const layout = layouts[String(index)];
+      if (!layout) return component;
+      return { ...component, props: { ...(component.props || {}), position: { ...layout } } };
+    });
+    const pages = latest.pages;
+    const appDefinition = { ...(result.data.app_definition || {}), pages };
+    await supabase.from('projects').update({ pages, app_definition: appDefinition, updated_at: new Date().toISOString() }).eq('id', projectId).eq('user_id', user.id);
+    definition = latest;
+  } catch (error) {
+    console.warn('Home layout merge failed', error);
+  }
 }
-
-async function init() {
-  await loadDefinition();
-  applyAll();
-  if (!canvas) return;
+function scheduleMergeAfterSave() {
+  window.clearTimeout(saveMergeTimer);
+  saveMergeTimer = window.setTimeout(() => {
+    const text = String(projectStatus?.textContent || '').toLowerCase();
+    if (text.includes('saved')) mergeLayoutsToServer();
+  }, 700);
+}
+function observeSaveStatus() {
+  if (!projectStatus) return;
   const observer = new MutationObserver(() => {
-    window.requestAnimationFrame(applyAll);
+    const text = String(projectStatus.textContent || '').toLowerCase();
+    if (text.includes('saved')) mergeLayoutsToServer();
   });
-  observer.observe(canvas, { childList: true, subtree: true });
+  observer.observe(projectStatus, { childList: true, characterData: true, subtree: true });
 }
 
-init().catch((error) => console.error('Free-position header init failed', error));
+canvas?.addEventListener('pointermove', pointerMove, { passive: false });
+window.addEventListener('pointerup', pointerUp, { passive: true });
+window.addEventListener('pointercancel', pointerUp, { passive: true });
+
+const canvasObserver = new MutationObserver(() => window.requestAnimationFrame(applyAll));
+canvasObserver.observe(canvas || document.body, { childList: true, subtree: true });
+const pageObserver = new MutationObserver(() => window.requestAnimationFrame(applyAll));
+pageObserver.observe(pageStatus || document.body, { childList: true, characterData: true, subtree: true });
+window.addEventListener('resize', applyAll);
+window.addEventListener('load', applyAll);
+observeSaveStatus();
+setTimeout(async () => { await loadDefinition(); applyAll(); }, 350);
+saveButton?.addEventListener('click', scheduleMergeAfterSave, true);
