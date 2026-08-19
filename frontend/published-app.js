@@ -9,7 +9,7 @@ function render(definition,name){
  const page=definition?.pages?.home||Object.values(definition?.pages||{})[0];
  const components=page?.components||definition?.componentsList||[];
  const theme=definition?.metadata?.theme||{};
- root.innerHTML=`<div style="--primary:${esc(theme.primaryColor||'#5b45f4')};font-family:${esc(theme.fontFamily||'Inter,system-ui,sans-serif')};max-width:1100px;margin:0 auto;padding:32px"><header style="margin-bottom:28px"><h1 style="margin:0 0 8px">${esc(definition?.metadata?.title||name||'Published App')}</h1><p style="margin:0;color:#64748b">${esc(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
+ root.innerHTML=`<div class="published-shell" style="--primary:${esc(theme.primaryColor||'#5b45f4')};font-family:${esc(theme.fontFamily||'Inter,system-ui,sans-serif')}"><header class="published-header"><h1>${esc(definition?.metadata?.title||name||'Published App')}</h1><p>${esc(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
  const host=document.getElementById('published-components');
  components.forEach(component=>{const el=document.createElement('div');el.className='published-component';el.style.marginBottom='16px';el.innerHTML=renderPublishedComponent(component);host.appendChild(el);});
 }
