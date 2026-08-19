@@ -1,9 +1,9 @@
 import { supabase } from './auth/supabase-config.js';
 import { renderPublishedComponent } from './published-component-renderer.js';
+import { mountPublishedWorkflows } from './published-workflow-runtime.js';
 
 const root=document.getElementById('app');
 const slug=decodeURIComponent(location.pathname.split('/').filter(Boolean).pop()||'');
-
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(definition,name){
  const page=definition?.pages?.home||Object.values(definition?.pages||{})[0];
@@ -12,6 +12,7 @@ function render(definition,name){
  root.innerHTML=`<div class="published-shell" style="--primary:${esc(theme.primaryColor||'#5b45f4')};font-family:${esc(theme.fontFamily||'Inter,system-ui,sans-serif')}"><header class="published-header"><h1>${esc(definition?.metadata?.title||name||'Published App')}</h1><p>${esc(definition?.metadata?.description||'')}</p></header><section id="published-components"></section></div>`;
  const host=document.getElementById('published-components');
  components.forEach(component=>{const el=document.createElement('div');el.className='published-component';el.style.marginBottom='16px';el.innerHTML=renderPublishedComponent(component);host.appendChild(el);});
+ mountPublishedWorkflows(definition);
 }
 async function load(){
  if(!slug){root.innerHTML='<p style="padding:32px">Missing app slug.</p>';return;}
