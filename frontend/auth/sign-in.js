@@ -24,7 +24,8 @@ signInForm.addEventListener('submit', async (event) => {
   try {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    window.location.replace('../index.html');
+    showMessage('Signed in. Opening your workspace...');
+    window.location.replace('../html/index.html');
   } catch (error) {
     showMessage(getReadableAuthError(error));
     signInButton.disabled = false;
