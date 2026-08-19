@@ -1,11 +1,12 @@
 import { supabase } from './auth/supabase-config.js';
+import { showPublishResult } from './publish-result-ui.js';
 
 const publishButton=document.getElementById('publishButton');
 const saveButton=document.getElementById('saveButton');
 const status=document.getElementById('projectStatus');
 const projectId=new URLSearchParams(window.location.search).get('projectId');
 
-function setStatus(text){if(status)status.textContent=text;}
+function setStatus(text){if(status)status.textContent=text}
 function slugify(value){return String(value||'app').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'app'}
 function liveUrl(slug){return new URL(`app/${encodeURIComponent(slug)}`,window.location.href).href}
 
@@ -38,10 +39,10 @@ async function publishProject(){
     const definition={...(before.data?.app_definition||{}),publishing:{...(before.data?.app_definition?.publishing||{}),slug,published:true,publishedAt:new Date().toISOString()}};
     const {error}=await supabase.from('projects').update({status:'published',app_definition:definition,updated_at:new Date().toISOString()}).eq('id',projectId);
     if(error)throw error;
-    setStatus(`Published • /app/${slug}`);
     const url=liveUrl(slug);
     if(navigator.clipboard)navigator.clipboard.writeText(url).catch(()=>{});
-    window.setTimeout(()=>{window.location.assign(url);},500);
+    publishButton.disabled=false;
+    showPublishResult(url);
   }catch(error){console.error(error);setStatus(error.message||'Publish failed');publishButton.disabled=false;}
 }
 publishButton?.addEventListener('click',publishProject);
