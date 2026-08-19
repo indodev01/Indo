@@ -1,41 +1,493 @@
 import { supabase } from '../auth/supabase-config.js';
 import { makeEmptyDefinition, normalizeComponents, normalizeDefinition, syncLegacyFields } from './app-definition.js';
 
-const $=(id)=>document.getElementById(id);const title=$('builderTitle');const status=$('projectStatus');const pageStatus=$('pageStatus');const canvas=$('canvas');const emptyState=$('emptyState');const saveButton=$('saveButton');const previewButton=$('previewButton');const inspector=$('inspectorContent');const selectionLabel=$('selectionLabel');const pageList=$('pageList');const componentList=$('componentList');const projectId=new URLSearchParams(location.search).get('projectId');
-let currentUser=null,project=null,definition=makeEmptyDefinition(),currentPageId='home',components=[],selectedIndex=-1,isReady=false,dragIndex=-1,selectedHeaderDesign=null;
-const TYPES=['Header','Navigation','Hero Section','Buttons','Cards','Images','Videos','Music Player','Forms','Footer / Bottom','Others'];const ICONS=['≡','☰','◒','↗','▣','▧','▶','♫','▤','⌄','✦'];
-const HEADER_DESIGNS=[{id:'left-menu-right',name:'Brand Left • Menu Right',brandSide:'left',menuSide:'right',bg:'#fff',color:'#111827'},{id:'left-menu-left',name:'Menu Left • Brand Left',brandSide:'left',menuSide:'left',bg:'#fff',color:'#111827'},{id:'center-menu-right',name:'Centered Brand • Menu Right',brandSide:'center',menuSide:'right',bg:'#fff',color:'#111827'},{id:'menu-left-center',name:'Menu Left • Center Brand',brandSide:'center',menuSide:'left',bg:'#fff',color:'#111827'},{id:'dark-left-right',name:'Dark • Brand Left',brandSide:'left',menuSide:'right',bg:'#0f172a',color:'#fff'},{id:'minimal-center',name:'Minimal Center',brandSide:'center',menuSide:'right',bg:'#f8fafc',color:'#0f172a'},{id:'right-brand',name:'Brand Right • Menu Left',brandSide:'right',menuSide:'left',bg:'#fff',color:'#111827'},{id:'soft-purple',name:'Soft Purple',brandSide:'left',menuSide:'right',bg:'#f5f3ff',color:'#312e81'}];
-function showStatus(text){status.textContent=text}function currentPage(){return definition.pages[currentPageId]||null}function deepClone(v){return JSON.parse(JSON.stringify(v))}
-function makeHeaderComponent(designId='left-menu-right'){const d=HEADER_DESIGNS.find(x=>x.id===designId)||HEADER_DESIGNS[0];return{id:`header-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,type:'Header',props:{designId:d.id,title:project?.name||'My App',fontFamily:'Inter',fontSize:20,fontWeight:'800',titleColor:d.color,menuIcon:'☰',menuIconColor:d.color,menuIconSize:22,menuBackground:d.bg,menuPanelBackground:'#0f172a',menuPanelColor:'#fff',menuSide:d.menuSide,brandSide:d.brandSide,items:Object.keys(definition.pages).length?Object.keys(definition.pages):['home']}}}
-const simpleDefaults={Navigation:{items:['Home','Music','Search'],icon:'☰'},'Hero Section':{title:'Build something amazing',text:'Your hero section starts here.',button:'Get Started'},Buttons:{label:'Get Started',background:'#7c3aed',color:'#fff',radius:10},Cards:{title:'Card title',text:'Card content',background:'#111827',color:'#fff'},Images:{url:'',alt:'Image'},Videos:{url:'',controls:true,autoplay:false},'Music Player':{title:'Now Playing',artist:'Artist',src:''},Forms:{title:'Contact us',fields:['Name','Email','Message']},'Footer / Bottom':{items:['Home','Music','Search','Profile']},Others:{text:'Custom block'}};
-function makeGenericComponent(type){return{id:`${type.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,type,props:deepClone(simpleDefaults[type]||{text:type})}}
-function renderPages(){pageList.innerHTML='';Object.entries(definition.pages).forEach(([id,p])=>{const b=document.createElement('button');b.type='button';b.className=`page-button${id===currentPageId?' active':''}`;b.textContent=p.name;b.onclick=()=>switchPage(id);b.ondblclick=()=>renamePage(id);pageList.appendChild(b)})}
-function switchPage(id){if(!definition.pages[id])return;if(currentPage())currentPage().components=normalizeComponents(components);currentPageId=id;components=normalizeComponents(definition.pages[id].components||[]);selectedIndex=-1;pageStatus.textContent=definition.pages[id].name;renderPages();renderCanvas();renderInspector();showStatus(`Editing ${definition.pages[id].name}`)}
-function renamePage(id){const p=definition.pages[id];if(!p)return;const next=window.prompt('Page name',p.name);if(!next||!next.trim())return;p.name=next.trim();p.slug=next.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||id;Object.values(definition.pages).forEach(x=>x.settings={...(x.settings||{}),title:x.name});renderPages();renderCanvas()}
-function addPage(){const input=$('pageNameInput');const name=input.value.trim();if(!name){$('pageDialogMessage').textContent='Enter a page name.';return}let base=name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'page',id=base,n=2;while(definition.pages[id])id=`${base}-${n++}`;if(currentPage())currentPage().components=normalizeComponents(components);definition.pages[id]={id,name,slug:id,components:[],styles:{background:'#fff',padding:'16px'},settings:{title:name}};Object.values(definition.pages).forEach(p=>{p.components=normalizeComponents(p.components||[]);p.components.forEach(c=>{if(c.type==='Header'){const items=Array.isArray(c.props?.items)?c.props.items:[];if(!items.includes(id))c.props.items=[...items,id]}})});$('pageDialog').hidden=true;input.value='';renderPages();switchPage(id)}
-function openPageDialog(){$('pageNameInput').value='';$('pageDialogMessage').textContent='';$('pageDialog').hidden=false;setTimeout(()=>$('pageNameInput').focus(),0)}
-function setupComponents(){componentList.innerHTML='';TYPES.forEach((type,i)=>{const b=document.createElement('button');b.type='button';b.className='component-button';b.dataset.component=type;const icon=document.createElement('span');icon.textContent=ICONS[i]||'•';b.append(icon,document.createTextNode(` ${type}`));if(type==='Header'){b.classList.add('component-special');b.onclick=openHeaderLibrary}else b.onclick=()=>addGeneric(type);componentList.appendChild(b)});const count=document.querySelector('.component-count');if(count)count.textContent=String(TYPES.length)}
-function addGeneric(type){if(!isReady)return;components.push(makeGenericComponent(type));selectedIndex=components.length-1;renderCanvas();renderInspector();showStatus(`${type} added to ${currentPage()?.name||'page'}`)}
-function ensureHeaderStyles(c){const p=c.props||{},d=HEADER_DESIGNS.find(x=>x.id===p.designId)||HEADER_DESIGNS[0];return{...d,...p}}
-function createHeaderElement(item,c){const p=ensureHeaderStyles(c),wrap=document.createElement('div');wrap.className=`app-header ${p.brandSide}-brand menu-${p.menuSide}`;wrap.style.background=p.bg||'#fff';wrap.style.color=p.color||'#111827';wrap.dataset.headerComponent=c.id;const tw=document.createElement('div');tw.className='header-title-wrap';const t=document.createElement('span');t.className='header-title-edit';t.textContent=p.title||'My App';t.style.fontFamily=p.fontFamily||'Inter';t.style.fontSize=`${Number(p.fontSize)||20}px`;t.style.fontWeight=p.fontWeight||'800';t.style.color=p.titleColor||p.color||'#111827';t.title='Double-click to edit';t.ondblclick=e=>{e.stopPropagation();openHeaderTitleEditor(c)};tw.appendChild(t);const mb=document.createElement('button');mb.type='button';mb.className='header-menu-toggle';mb.textContent=p.menuIcon||'☰';mb.style.color=p.menuIconColor||p.color||'#111827';mb.style.fontSize=`${Number(p.menuIconSize)||22}px`;mb.style.background=p.menuBackground||'rgba(16,24,40,.04)';mb.title='Click to open menu • Double-click to edit menu';mb.onclick=e=>{e.stopPropagation();toggleHeaderMenu(wrap,c)};mb.ondblclick=e=>{e.stopPropagation();openHeaderMenuEditor(c)};if(p.brandSide==='center')wrap.append(mb,tw);else if(p.menuSide==='left')wrap.append(mb,tw);else wrap.append(tw,mb);item.appendChild(wrap)}
-function toggleHeaderMenu(wrap,c){const old=wrap.querySelector('.header-menu-panel');if(old){old.remove();return}const p=ensureHeaderStyles(c),panel=document.createElement('div');panel.className=`header-menu-panel ${p.menuSide==='left'?'left':''}`;(Array.isArray(p.items)?p.items:Object.keys(definition.pages)).forEach(pageId=>{const page=definition.pages[pageId];if(!page)return;const b=document.createElement('button');b.type='button';b.className='header-menu-item';b.textContent=page.name;b.onclick=()=>{panel.remove();switchPage(pageId)};b.ondblclick=e=>{e.stopPropagation();panel.remove();renamePage(pageId)};panel.appendChild(b)});const add=document.createElement('button');add.type='button';add.className='header-menu-add';add.textContent='+ Add Page';add.onclick=()=>{panel.remove();openPageDialog()};panel.appendChild(add);wrap.appendChild(panel)}
-function renderGeneric(item,c){const p=c.props||{},create=(tag,v)=>{const el=document.createElement(tag);el.textContent=v||'';return el};if(c.type==='Navigation'){const nav=document.createElement('nav');nav.style.display='flex';nav.style.gap='14px';(p.items||[]).forEach(v=>{const b=create('button',v);b.type='button';b.style.background='transparent';b.style.border='0';b.style.color='#d8e0ed';b.onclick=()=>{const page=Object.values(definition.pages).find(x=>x.name.toLowerCase()===String(v).toLowerCase());if(page)switchPage(page.id)};nav.appendChild(b)});item.appendChild(nav)}else if(c.type==='Hero Section'){const box=create('div');box.style.padding='40px 24px';box.style.borderRadius='16px';box.style.background='linear-gradient(135deg,#111827,#1f2937)';const h=create('h2',p.title),t=create('p',p.text),b=create('button',p.button);b.style.cssText='padding:10px 14px;border:0;border-radius:10px;background:#7c3aed;color:#fff;font-weight:800;';box.append(h,t,b);item.appendChild(box)}else if(c.type==='Buttons'){const b=create('button',p.label);b.style.cssText=`padding:10px 16px;border:0;border-radius:${Number(p.radius)||10}px;background:${p.background||'#7c3aed'};color:${p.color||'#fff'};font-weight:800`;item.appendChild(b)}else if(c.type==='Cards'){const x=create('div');x.style.cssText='padding:16px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:#111827;color:#fff;';x.append(create('h3',p.title),create('p',p.text));item.appendChild(x)}else if(c.type==='Images'){const image=p.url?document.createElement('img'):create('div','Image URL not set');if(p.url){image.src=p.url;image.alt=p.alt||'Image';image.style.maxWidth='100%'}item.appendChild(image)}else if(c.type==='Videos'){const v=document.createElement('video');v.controls=p.controls!==false;v.autoplay=Boolean(p.autoplay);v.src=p.url||'';v.style.width='100%';item.appendChild(v)}else if(c.type==='Music Player'){const audio=document.createElement('audio');audio.controls=true;audio.src=p.src||'';item.append(create('strong',p.title),audio)}else if(c.type==='Forms'){const form=document.createElement('div');form.appendChild(create('h3',p.title));(p.fields||[]).forEach(f=>{const input=document.createElement('input');input.placeholder=f;input.style.cssText='display:block;width:100%;margin:7px 0;padding:10px;border-radius:8px;border:1px solid #d1d5db;';form.appendChild(input)});item.appendChild(form)}else if(c.type==='Footer / Bottom'){const nav=document.createElement('nav');nav.style.cssText='display:flex;justify-content:space-around;gap:10px;padding:14px;border-top:1px solid rgba(255,255,255,.1);';(p.items||[]).forEach(x=>{const b=create('button',x);b.type='button';b.style.cssText='border:0;background:transparent;color:#cbd5e1';nav.appendChild(b)});item.appendChild(nav)}else if(c.type==='Others')item.appendChild(create('div',p.text))}
-function renderComponent(item,c){item.className=`canvas-item${c.type==='Header'?' canvas-header-component':''}`;if(c.type==='Header')createHeaderElement(item,c);else renderGeneric(item,c)}
-function renderCanvas(){canvas.querySelectorAll('.canvas-item').forEach(n=>n.remove());emptyState.style.display=components.length?'none':'';components.forEach((c,i)=>{const item=document.createElement('div');renderComponent(item,c);item.draggable=true;item.dataset.index=String(i);if(i===selectedIndex)item.classList.add('selected');item.onclick=()=>selectComponent(i);item.ondragstart=()=>{dragIndex=i};item.ondragover=e=>e.preventDefault();item.ondrop=e=>{e.preventDefault();if(dragIndex<0||dragIndex===i)return;const[moved]=components.splice(dragIndex,1),target=dragIndex<i?i-1:i;components.splice(target,0,moved);selectedIndex=target;dragIndex=-1;renderCanvas();renderInspector()};canvas.appendChild(item)})}
-function field(label,value,handler,options={}){const wrap=document.createElement('div');wrap.className='inspector-field';const l=document.createElement('label');l.textContent=label;const input=document.createElement(options.textarea?'textarea':'input');if(options.type)input.type=options.type;input.value=value??'';input.oninput=e=>handler(e.target.value);wrap.append(l,input);return wrap}
-function setProp(key,value){if(!components[selectedIndex])return;components[selectedIndex].props={...(components[selectedIndex].props||{}),[key]:value};renderCanvas()}
-function renderInspector(){inspector.innerHTML='';if(selectedIndex<0||!components[selectedIndex]){selectionLabel.textContent='Nothing selected';const p=document.createElement('p');p.className='inspector-empty';p.textContent='Select an element to configure it.';inspector.appendChild(p);return}const c=components[selectedIndex];selectionLabel.textContent=c.type;if(c.type==='Header'){const p=ensureHeaderStyles(c);inspector.appendChild(field('Header title',p.title,v=>setProp('title',v)));const select=document.createElement('select');HEADER_DESIGNS.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name;o.selected=d.id===p.designId;select.appendChild(o)});const w=document.createElement('div');w.className='inspector-field';const l=document.createElement('label');l.textContent='Design';w.append(l,select);inspector.appendChild(w);select.onchange=e=>setProp('designId',e.target.value);inspector.appendChild(field('Font',p.fontFamily,v=>setProp('fontFamily',v)));inspector.appendChild(field('Font size',p.fontSize,v=>setProp('fontSize',Number(v)||20),{type:'number'}));inspector.appendChild(field('Title color',p.titleColor,v=>setProp('titleColor',v)));inspector.appendChild(field('Menu icon',p.menuIcon,v=>setProp('menuIcon',v)));inspector.appendChild(field('Menu icon color',p.menuIconColor,v=>setProp('menuIconColor',v)));inspector.appendChild(field('Menu icon size',p.menuIconSize,v=>setProp('menuIconSize',Number(v)||22),{type:'number'}));const pagesBox=document.createElement('div');pagesBox.className='inspector-field';const label=document.createElement('label');label.textContent='Pages in menu';pagesBox.appendChild(label);const list=document.createElement('div');list.className='header-menu-editor-pages';(p.items||[]).forEach(id=>{const page=definition.pages[id];if(!page)return;const row=document.createElement('div');row.className='header-page-row';const name=document.createElement('span');name.textContent=page.name;const actions=document.createElement('div');actions.className='header-page-actions';const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove from menu';remove.onclick=()=>{c.props.items=(c.props.items||[]).filter(x=>x!==id);renderCanvas();renderInspector()};actions.appendChild(remove);row.append(name,actions);list.appendChild(row)});pagesBox.appendChild(list);const add=document.createElement('button');add.type='button';add.className='header-menu-add';add.textContent='+ Add Page';add.onclick=openPageDialog;pagesBox.appendChild(add);inspector.appendChild(pagesBox)}else{const props=c.props||{};Object.entries(props).forEach(([key,value])=>{if(key==='items'&&Array.isArray(value))inspector.appendChild(field(key,value.join('\n'),v=>setProp(key,v.split('\n').map(x=>x.trim()).filter(Boolean)),{textarea:true}));else if(typeof value==='boolean'){const w=document.createElement('div');w.className='inspector-field';const l=document.createElement('label');l.textContent=key;const i=document.createElement('input');i.type='checkbox';i.checked=value;i.onchange=()=>setProp(key,i.checked);w.append(l,i);inspector.appendChild(w)}else inspector.appendChild(field(key,value,v=>setProp(key,typeof value==='number'?(Number(v)||0):v,{type:typeof value==='number'?'number':'text'})))});}const del=document.createElement('button');del.type='button';del.className='danger';del.textContent='Delete Component';del.onclick=()=>{components.splice(selectedIndex,1);selectedIndex=-1;renderCanvas();renderInspector()};inspector.appendChild(del)}
-function selectComponent(i){selectedIndex=i;renderCanvas();renderInspector()}
-function injectHeaderLibrary(){if($('headerLibraryBackdrop'))return;const backdrop=document.createElement('div');backdrop.id='headerLibraryBackdrop';backdrop.className='header-lib-backdrop';backdrop.hidden=true;backdrop.innerHTML=`<div class="header-lib-modal" role="dialog" aria-modal="true"><div class="header-lib-head"><div><h2>Choose a Header Design</h2><p>Select a header layout to add to your app.</p></div><button type="button" class="header-lib-close" data-header-lib-close>×</button></div><div class="header-design-grid" id="headerDesignGrid"></div><div class="header-lib-foot"><button type="button" class="header-lib-cancel" data-header-lib-cancel>Cancel</button><button type="button" class="header-lib-add" data-header-lib-add>Add to App</button></div></div>`;document.body.appendChild(backdrop);backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeHeaderLibrary()});backdrop.querySelector('[data-header-lib-close]').onclick=closeHeaderLibrary;backdrop.querySelector('[data-header-lib-cancel]').onclick=closeHeaderLibrary;backdrop.querySelector('[data-header-lib-add]').onclick=()=>{if(!selectedHeaderDesign)return;components.push(makeHeaderComponent(selectedHeaderDesign));selectedIndex=components.length-1;renderCanvas();renderInspector();closeHeaderLibrary();showStatus('Header added to your app')}}
-function openHeaderLibrary(){injectHeaderLibrary();selectedHeaderDesign=HEADER_DESIGNS[0].id;const grid=$('headerDesignGrid');grid.innerHTML='';HEADER_DESIGNS.forEach(d=>{const card=document.createElement('button');card.type='button';card.className='header-design-card'+(d.id===selectedHeaderDesign?' selected':'');const preview=document.createElement('div');preview.className='header-design-preview';preview.style.background=d.bg;preview.style.color=d.color;const brand=document.createElement('span');brand.className='hd-brand';brand.textContent=project?.name||'My App';const nav=document.createElement('span');nav.className='hd-nav';nav.innerHTML='<span>Home</span><span>About</span><span>Contact</span>';const menu=document.createElement('span');menu.className='hd-menu';menu.textContent='☰';if(d.brandSide==='center')preview.append(menu,brand,nav);else if(d.menuSide==='left')preview.append(menu,brand,nav);else preview.append(brand,nav,menu);const meta=document.createElement('div');meta.className='header-design-meta';const name=document.createElement('span');name.textContent=d.name;const check=document.createElement('span');check.className='header-design-check';check.textContent='✓';check.style.display=d.id===selectedHeaderDesign?'grid':'none';meta.append(name,check);card.append(preview,meta);card.onclick=()=>{selectedHeaderDesign=d.id;grid.querySelectorAll('.header-design-card').forEach(n=>n.classList.remove('selected'));card.classList.add('selected');grid.querySelectorAll('.header-design-check').forEach(n=>n.style.display='none');check.style.display='grid'};grid.appendChild(card)});$('headerLibraryBackdrop').hidden=false}
-function closeHeaderLibrary(){const el=$('headerLibraryBackdrop');if(el)el.hidden=true}
-function openEditor(titleText,bodyBuilder,onSave){const backdrop=document.createElement('div');backdrop.className='header-edit-backdrop';const modal=document.createElement('div');modal.className='header-edit-modal';const heading=document.createElement('h3');heading.textContent=titleText;const fields=document.createElement('div');fields.className='header-edit-fields';bodyBuilder(fields);const actions=document.createElement('div');actions.className='header-edit-actions';const cancel=document.createElement('button');cancel.type='button';cancel.className='header-edit-cancel';cancel.textContent='Cancel';const save=document.createElement('button');save.type='button';save.className='header-edit-save';save.textContent='Apply';cancel.onclick=()=>backdrop.remove();save.onclick=()=>{onSave();backdrop.remove()};actions.append(cancel,save);modal.append(heading,fields,actions);backdrop.appendChild(modal);document.body.appendChild(backdrop);backdrop.addEventListener('click',e=>{if(e.target===backdrop)backdrop.remove()})}
-function openHeaderTitleEditor(c){const p=c.props||{},state={title:p.title||'',fontFamily:p.fontFamily||'Inter',fontSize:p.fontSize||20,fontWeight:p.fontWeight||'800',titleColor:p.titleColor||'#111827'};openEditor('Edit Header Title',fields=>{fields.appendChild(field('Text',state.title,v=>state.title=v));fields.appendChild(field('Font',state.fontFamily,v=>state.fontFamily=v));fields.appendChild(field('Font size',state.fontSize,v=>state.fontSize=Number(v)||20,{type:'number'}));fields.appendChild(field('Weight',state.fontWeight,v=>state.fontWeight=v));fields.appendChild(field('Color',state.titleColor,v=>state.titleColor=v))},()=>{c.props={...c.props,...state};renderCanvas();renderInspector();showStatus('Header title updated')})}
-function openHeaderMenuEditor(c){const p=c.props||{},state={menuIcon:p.menuIcon||'☰',menuIconColor:p.menuIconColor||'#111827',menuIconSize:p.menuIconSize||22,menuBackground:p.menuBackground||'rgba(16,24,40,.04)',menuPanelBackground:p.menuPanelBackground||'#0f172a',menuPanelColor:p.menuPanelColor||'#fff'};openEditor('Edit Header Menu',fields=>{fields.appendChild(field('Menu icon',state.menuIcon,v=>state.menuIcon=v));fields.appendChild(field('Icon color',state.menuIconColor,v=>state.menuIconColor=v));fields.appendChild(field('Icon size',state.menuIconSize,v=>state.menuIconSize=Number(v)||22,{type:'number'}));fields.appendChild(field('Button background',state.menuBackground,v=>state.menuBackground=v));fields.appendChild(field('Menu panel background',state.menuPanelBackground,v=>state.menuPanelBackground=v));fields.appendChild(field('Menu panel text',state.menuPanelColor,v=>state.menuPanelColor=v))},()=>{c.props={...c.props,...state};renderCanvas();renderInspector();showStatus('Header menu updated')})}
-async function loadProject(){if(!projectId)throw new Error('Missing project ID');const auth=await supabase.auth.getUser();if(auth.error)throw auth.error;currentUser=auth.data.user;if(!currentUser){location.replace('../auth/sign-in.html');return}const result=await supabase.from('projects').select('id,user_id,name,description,app_definition,pages,updated_at').eq('id',projectId).eq('user_id',currentUser.id).maybeSingle();if(result.error)throw result.error;if(!result.data)throw new Error('Project not found or access denied');project=result.data;definition=normalizeDefinition(project);currentPageId=Object.keys(definition.pages)[0]||'home';components=normalizeComponents(definition.pages[currentPageId]?.components||[]);title.textContent=`${project.name||'Untitled App'} Builder`;pageStatus.textContent=definition.pages[currentPageId]?.name||'Home';renderPages();renderCanvas();renderInspector();showStatus('Definition loaded');isReady=true}
-function bindPageDialog(){$('addPageButton').addEventListener('click',openPageDialog);$('cancelPageButton').addEventListener('click',()=>$('pageDialog').hidden=true);$('confirmPageButton').addEventListener('click',addPage);$('pageNameInput').addEventListener('keydown',e=>{if(e.key==='Enter')addPage();if(e.key==='Escape')$('pageDialog').hidden=true})}
-async function saveDefinition(){if(!isReady||!projectId||!currentUser)return false;if(currentPage())currentPage().components=normalizeComponents(components);const synced=syncLegacyFields(definition),result=await supabase.from('projects').update({pages:synced.pages,app_definition:synced.appDefinition,updated_at:new Date().toISOString()}).eq('id',projectId).eq('user_id',currentUser.id).select('id').maybeSingle();if(result.error)throw result.error;if(!result.data)throw new Error('No project was updated');return true}
-saveButton.addEventListener('click',async()=>{saveButton.disabled=true;showStatus('Saving...');try{await saveDefinition();showStatus('Saved successfully')}catch(e){console.error(e);showStatus(`Save failed: ${e.message||'error'}`)}finally{saveButton.disabled=false}});
-previewButton.addEventListener('click',async()=>{if(!isReady||!projectId||!currentUser)return;previewButton.disabled=true;showStatus('Saving before preview...');try{await saveDefinition();location.href=`preview.html?projectId=${encodeURIComponent(projectId)}&page=${encodeURIComponent(currentPageId)}`}catch(e){console.error(e);showStatus(`Preview failed: ${e.message||'error'}`);previewButton.disabled=false}});
-document.querySelectorAll('.device-button').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.device-button').forEach(item=>item.classList.toggle('active',item===button));canvas.classList.toggle('canvas-mobile',button.dataset.device==='mobile');canvas.classList.toggle('canvas-tablet',button.dataset.device==='tablet');canvas.classList.toggle('canvas-desktop',button.dataset.device==='desktop')}));
-setupComponents();bindPageDialog();injectHeaderLibrary();loadProject().catch(error=>{console.error(error);showStatus(`Load failed: ${error.message||'error'}`);document.querySelectorAll('.component-button').forEach(button=>button.disabled=true);saveButton.disabled=true});
+const $ = (id) => document.getElementById(id);
+const projectId = new URLSearchParams(location.search).get('projectId');
+const canvas = $('canvas');
+const pageList = $('pageList');
+const componentList = $('componentList');
+const inspector = $('inspectorContent');
+const selectionLabel = $('selectionLabel');
+const pageStatus = $('pageStatus');
+const projectStatus = $('projectStatus');
+const saveButton = $('saveButton');
+const previewButton = $('previewButton');
+const publishButton = $('publishButton');
+const addPageButton = $('addPageButton');
+const pageDialog = $('pageDialog');
+const pageNameInput = $('pageNameInput');
+const cancelPageButton = $('cancelPageButton');
+const confirmPageButton = $('confirmPageButton');
+const deviceButtons = [...document.querySelectorAll('.device-button')];
+const tabs = [...document.querySelectorAll('.inspector-tabs .tab')];
+
+const TYPES = [
+  ['Header', '≡'], ['Navigation', '☰'], ['Hero Section', '◒'], ['Buttons', '↗'],
+  ['Cards', '▣'], ['Images', '▧'], ['Videos', '▶'], ['Music Player', '♫'],
+  ['Forms', '▤'], ['Footer / Bottom', '⌄'], ['Others', '✦']
+];
+
+const HEADER_DESIGNS = [
+  { id:'left-menu-right', name:'Brand Left • Menu Right', brandSide:'left', menuSide:'right', bg:'#ffffff', color:'#111827' },
+  { id:'left-menu-left', name:'Menu Left • Brand Left', brandSide:'left', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'center-menu-right', name:'Centered Brand • Menu Right', brandSide:'center', menuSide:'right', bg:'#ffffff', color:'#111827' },
+  { id:'menu-left-center', name:'Menu Left • Center Brand', brandSide:'center', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'dark-left-right', name:'Dark • Brand Left', brandSide:'left', menuSide:'right', bg:'#0f172a', color:'#ffffff' },
+  { id:'minimal-center', name:'Minimal Center', brandSide:'center', menuSide:'right', bg:'#f8fafc', color:'#0f172a' },
+  { id:'right-brand', name:'Brand Right • Menu Left', brandSide:'right', menuSide:'left', bg:'#ffffff', color:'#111827' },
+  { id:'soft-purple', name:'Soft Purple', brandSide:'left', menuSide:'right', bg:'#f5f3ff', color:'#312e81' }
+];
+
+const DEFAULTS = {
+  Navigation: { items:['Home','Music','Search'], icon:'☰' },
+  'Hero Section': { title:'Build something amazing', text:'Your hero section starts here.', button:'Get Started' },
+  Buttons: { label:'Get Started', background:'#7c3aed', color:'#ffffff', radius:10 },
+  Cards: { title:'Card title', text:'Card content', background:'#111827', color:'#ffffff' },
+  Images: { url:'', alt:'Image' },
+  Videos: { url:'', controls:true, autoplay:false },
+  'Music Player': { title:'Now Playing', artist:'Artist', src:'' },
+  Forms: { title:'Contact us', fields:['Name','Email','Message'] },
+  'Footer / Bottom': { items:['Home','Music','Search','Profile'] },
+  Others: { text:'Custom block' }
+};
+
+let currentUser = null;
+let project = null;
+let definition = makeEmptyDefinition();
+let currentPageId = 'home';
+let selectedIndex = -1;
+let activeDevice = 'desktop';
+let dirty = false;
+let loading = false;
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const setStatus = (text) => { if (projectStatus) projectStatus.textContent = text; };
+const activePage = () => definition.pages?.[currentPageId] || null;
+
+function slugify(value) {
+  return String(value || 'page').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
+}
+
+function markDirty(text = 'Unsaved changes') {
+  dirty = true;
+  if (text) setStatus(text);
+  window.dispatchEvent(new CustomEvent('indo:builder-dirty'));
+}
+
+function makeHeader(designId = 'left-menu-right') {
+  const d = HEADER_DESIGNS.find((item) => item.id === designId) || HEADER_DESIGNS[0];
+  return {
+    id: `header-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    type: 'Header',
+    props: {
+      designId:d.id, title:project?.name || 'My App', fontFamily:'Inter', fontSize:20, fontWeight:'800',
+      titleColor:d.color, menuIcon:'☰', menuIconColor:d.color, menuIconSize:22,
+      menuBackground:d.bg, menuPanelBackground:'#0f172a', menuPanelColor:'#ffffff',
+      menuSide:d.menuSide, brandSide:d.brandSide, items:Object.keys(definition.pages)
+    }
+  };
+}
+
+function dedupeHeaders(page) {
+  if (!page?.components) return false;
+  const normalized = normalizeComponents(page.components);
+  let seen = false;
+  const filtered = normalized.filter((component) => {
+    if (component.type !== 'Header') return true;
+    if (seen) return false;
+    seen = true;
+    return true;
+  });
+  const changed = filtered.length !== normalized.length;
+  page.components = filtered;
+  return changed;
+}
+
+function ensurePageNavigation() {
+  for (const page of Object.values(definition.pages || {})) {
+    page.components = normalizeComponents(page.components || []);
+    for (const component of page.components) {
+      if (component.type === 'Header') {
+        const items = Array.isArray(component.props?.items) ? component.props.items.filter((id) => definition.pages[id]) : [];
+        component.props = { ...(component.props || {}), items: items.length ? items : Object.keys(definition.pages) };
+      }
+    }
+  }
+}
+
+async function loadProject() {
+  if (!projectId) throw new Error('Missing project ID');
+  const auth = await supabase.auth.getUser();
+  if (auth.error) throw auth.error;
+  if (!auth.data.user) throw new Error('Please sign in again');
+  currentUser = auth.data.user;
+  const result = await supabase.from('projects')
+    .select('id,user_id,name,description,status,project_type,app_definition,pages,updated_at')
+    .eq('id', projectId).eq('user_id', currentUser.id).maybeSingle();
+  if (result.error) throw result.error;
+  if (!result.data) throw new Error('Project not found');
+  project = result.data;
+  definition = normalizeDefinition(project);
+  let changed = false;
+  Object.values(definition.pages).forEach((page) => { if (dedupeHeaders(page)) changed = true; });
+  ensurePageNavigation();
+  currentPageId = definition.pages.home ? 'home' : Object.keys(definition.pages)[0] || 'home';
+  if (changed) markDirty('Duplicate headers cleaned');
+  exposeState();
+}
+
+async function saveDefinition() {
+  if (!projectId || !currentUser || loading) return;
+  loading = true;
+  try {
+    const page = activePage();
+    if (page) page.components = normalizeComponents(page.components || []);
+    ensurePageNavigation();
+    const synced = syncLegacyFields(definition);
+    const result = await supabase.from('projects').update({
+      pages: clone(synced.pages),
+      app_definition: clone(synced.appDefinition),
+      updated_at: new Date().toISOString()
+    }).eq('id', projectId).eq('user_id', currentUser.id);
+    if (result.error) throw result.error;
+    project.pages = clone(synced.pages);
+    project.app_definition = clone(synced.appDefinition);
+    dirty = false;
+    setStatus('Saved');
+    window.dispatchEvent(new CustomEvent('indo:builder-saved', { detail:{ projectId } }));
+  } finally {
+    loading = false;
+    exposeState();
+  }
+}
+
+function exposeState() {
+  window.__indoBuilderComponents = activePage()?.components || [];
+  window.__indoBuilderState = {
+    getDefinition: () => definition,
+    getSelectedIndex: () => selectedIndex,
+    getActiveDevice: () => activeDevice,
+    save: saveDefinition,
+    markDirty
+  };
+}
+
+function currentComponent() {
+  return activePage()?.components?.[selectedIndex] || null;
+}
+
+function renderPages() {
+  pageList.innerHTML = '';
+  Object.entries(definition.pages || {}).forEach(([id, page]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `page-button${id === currentPageId ? ' active' : ''}`;
+    button.textContent = page.name || id;
+    button.addEventListener('click', () => switchPage(id));
+    button.addEventListener('dblclick', () => renamePage(id));
+    pageList.appendChild(button);
+  });
+}
+
+function switchPage(id) {
+  if (!definition.pages[id]) return;
+  currentPageId = id;
+  selectedIndex = -1;
+  const page = activePage();
+  if (page) page.components = normalizeComponents(page.components || []);
+  pageStatus.textContent = page?.name || id;
+  renderPages();
+  renderCanvas();
+  renderInspector();
+  exposeState();
+  setStatus(`Editing ${page?.name || id}`);
+}
+
+function renamePage(id) {
+  const page = definition.pages[id];
+  if (!page) return;
+  const next = window.prompt('Page name', page.name || id);
+  if (!next?.trim()) return;
+  page.name = next.trim();
+  page.slug = slugify(next);
+  page.settings = { ...(page.settings || {}), title: page.name };
+  ensurePageNavigation();
+  renderPages(); renderCanvas(); renderInspector();
+  markDirty('Page renamed');
+}
+
+function renderComponents() {
+  componentList.innerHTML = '';
+  TYPES.forEach(([type, icon]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'component-button';
+    button.dataset.component = type;
+    button.innerHTML = `<span aria-hidden="true">${icon}</span><span>${type}</span>`;
+    if (type === 'Header') button.classList.add('component-special');
+    button.addEventListener('click', () => {
+      if (type === 'Header' && window.IndoHeaderLibrary?.open) window.IndoHeaderLibrary.open();
+      else addComponent(type);
+    });
+    componentList.appendChild(button);
+  });
+  const count = document.querySelector('.component-count');
+  if (count) count.textContent = String(TYPES.length);
+}
+
+function addComponent(type) {
+  const page = activePage();
+  if (!page) return;
+  const component = type === 'Header' ? makeHeader() : {
+    id:`${slugify(type)}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+    type,
+    props: clone(DEFAULTS[type] || { text:type })
+  };
+  page.components = normalizeComponents(page.components || []);
+  page.components.push(component);
+  selectedIndex = page.components.length - 1;
+  renderCanvas(); renderInspector(); exposeState(); markDirty(`${type} added`);
+}
+
+function headerStyles(component) {
+  const props = component?.props || {};
+  const design = HEADER_DESIGNS.find((item) => item.id === props.designId) || HEADER_DESIGNS[0];
+  return { ...design, ...props };
+}
+
+function renderHeader(item, component) {
+  const p = headerStyles(component);
+  const header = document.createElement('div');
+  header.className = `app-header ${p.brandSide || 'left'}-brand menu-${p.menuSide || 'right'}`;
+  header.dataset.headerComponent = component.id;
+  header.style.background = p.bg || '#fff';
+  header.style.color = p.color || '#111827';
+
+  const titleWrap = document.createElement('div');
+  titleWrap.className = 'header-title-wrap';
+  const title = document.createElement('span');
+  title.className = 'header-title-edit';
+  title.textContent = p.title || 'My App';
+  Object.assign(title.style, { fontFamily:p.fontFamily || 'Inter', fontSize:`${Number(p.fontSize)||20}px`, fontWeight:p.fontWeight || '800', color:p.titleColor || p.color || '#111827' });
+  titleWrap.appendChild(title);
+
+  const menu = document.createElement('button');
+  menu.type = 'button';
+  menu.className = 'header-menu-toggle';
+  menu.textContent = p.menuIcon || '☰';
+  menu.title = 'Open menu';
+  Object.assign(menu.style, { color:p.menuIconColor || p.color || '#111827', fontSize:`${Number(p.menuIconSize)||22}px`, background:p.menuBackground || 'rgba(16,24,40,.04)' });
+  menu.addEventListener('click', (event) => { event.stopPropagation(); toggleHeaderMenu(header, component); });
+
+  if (p.brandSide === 'center') header.append(menu, titleWrap);
+  else if (p.menuSide === 'left') header.append(menu, titleWrap);
+  else header.append(titleWrap, menu);
+  item.appendChild(header);
+}
+
+function toggleHeaderMenu(header, component) {
+  const existing = header.querySelector('.header-menu-panel');
+  if (existing) { existing.remove(); return; }
+  const p = headerStyles(component);
+  const panel = document.createElement('div');
+  panel.className = `header-menu-panel ${p.menuSide === 'left' ? 'left' : ''}`;
+  (Array.isArray(p.items) ? p.items : Object.keys(definition.pages)).forEach((id) => {
+    const page = definition.pages[id];
+    if (!page) return;
+    const button = document.createElement('button');
+    button.type = 'button'; button.className='header-menu-item'; button.textContent = page.name;
+    button.addEventListener('click', () => { panel.remove(); switchPage(id); });
+    panel.appendChild(button);
+  });
+  const add = document.createElement('button');
+  add.type='button'; add.className='header-menu-add'; add.textContent='+ Add Page';
+  add.addEventListener('click', () => { panel.remove(); openPageDialog(); });
+  panel.appendChild(add);
+  header.appendChild(panel);
+}
+
+function renderGeneric(item, component) {
+  const p = component.props || {};
+  if (component.type === 'Navigation') {
+    const nav = document.createElement('nav'); nav.className='generic-navigation';
+    (Array.isArray(p.items) ? p.items : []).forEach((name) => {
+      const button=document.createElement('button'); button.type='button'; button.textContent=name;
+      button.addEventListener('click', () => { const target=Object.entries(definition.pages).find(([,page]) => String(page.name).toLowerCase()===String(name).toLowerCase())?.[0]; if(target) switchPage(target); });
+      nav.appendChild(button);
+    }); item.appendChild(nav); return;
+  }
+  if (component.type === 'Hero Section') {
+    const box=document.createElement('div'); box.className='generic-hero';
+    const h=document.createElement('h2'); h.textContent=p.title||''; const t=document.createElement('p'); t.textContent=p.text||'';
+    const b=document.createElement('button'); b.type='button'; b.textContent=p.button||'Get Started'; box.append(h,t,b); item.appendChild(box); return;
+  }
+  if (component.type === 'Buttons') {
+    const b=document.createElement('button'); b.type='button'; b.textContent=p.label||'Get Started'; b.className='generic-button'; b.style.background=p.background||'#7c3aed'; b.style.color=p.color||'#fff'; b.style.borderRadius=`${Number(p.radius)||10}px`; item.appendChild(b); return;
+  }
+  if (component.type === 'Cards') {
+    const card=document.createElement('article'); card.className='generic-card'; const h=document.createElement('h3'); h.textContent=p.title||''; const t=document.createElement('p'); t.textContent=p.text||''; card.append(h,t); item.appendChild(card); return;
+  }
+  if (component.type === 'Images') {
+    if (p.url) { const img=document.createElement('img'); img.src=p.url; img.alt=p.alt||'Image'; img.className='generic-image'; item.appendChild(img); }
+    else { const empty=document.createElement('div'); empty.className='generic-empty'; empty.textContent='Image URL not set'; item.appendChild(empty); }
+    return;
+  }
+  if (component.type === 'Videos') {
+    const video=document.createElement('video'); video.controls=p.controls!==false; video.autoplay=Boolean(p.autoplay); video.src=p.url||''; video.className='generic-video'; item.appendChild(video); return;
+  }
+  if (component.type === 'Music Player') {
+    const title=document.createElement('strong'); title.textContent=p.title||'Now Playing'; const audio=document.createElement('audio'); audio.controls=true; audio.src=p.src||''; item.append(title,audio); return;
+  }
+  if (component.type === 'Forms') {
+    const form=document.createElement('div'); form.className='generic-form'; const h=document.createElement('h3'); h.textContent=p.title||'Contact us'; form.appendChild(h);
+    (Array.isArray(p.fields)?p.fields:[]).forEach((name) => { const input=document.createElement('input'); input.placeholder=name; form.appendChild(input); }); item.appendChild(form); return;
+  }
+  if (component.type === 'Footer / Bottom') {
+    const footer=document.createElement('nav'); footer.className='generic-footer'; (Array.isArray(p.items)?p.items:[]).forEach((label) => { const b=document.createElement('button'); b.type='button'; b.textContent=label; footer.appendChild(b); }); item.appendChild(footer); return;
+  }
+  const other=document.createElement('div'); other.className='generic-other'; other.textContent=p.text||component.type; item.appendChild(other);
+}
+
+function renderCanvas() {
+  canvas.querySelectorAll(':scope > .canvas-item').forEach((node) => node.remove());
+  const page = activePage();
+  const components = page?.components || [];
+  const empty = $('emptyState');
+  if (empty) empty.style.display = components.length ? 'none' : '';
+  components.forEach((component, index) => {
+    const item=document.createElement('div');
+    item.className=`canvas-item${component.type==='Header'?' canvas-header-component':''}${index===selectedIndex?' selected':''}`;
+    item.dataset.index=String(index); item.dataset.componentId=component.id;
+    item.addEventListener('click', (event) => { if (event.target.closest('.header-menu-panel,.header-menu-toggle')) return; event.stopPropagation(); selectComponent(index); });
+    if (component.type==='Header') renderHeader(item, component); else renderGeneric(item, component);
+    canvas.appendChild(item);
+  });
+}
+
+function selectComponent(index) {
+  if (!Number.isInteger(index) || !activePage()?.components?.[index]) return;
+  selectedIndex=index;
+  renderCanvas(); renderInspector(); exposeState();
+  window.dispatchEvent(new CustomEvent('indo:component-selected', { detail:{ index, element:canvas.querySelector(`.canvas-item[data-index="${index}"]`) } }));
+}
+
+function createField(label, value, onChange, options={}) {
+  const wrap=document.createElement('div'); wrap.className='inspector-field';
+  const labelEl=document.createElement('label'); labelEl.textContent=label; wrap.appendChild(labelEl);
+  const input=document.createElement(options.multiline?'textarea':'input');
+  input.type=options.type||'text'; input.value=value ?? '';
+  input.addEventListener('input',(event)=>{ onChange(options.type==='number' ? Number(event.target.value) : event.target.value); });
+  wrap.appendChild(input); return wrap;
+}
+
+function setComponentProp(key, value) {
+  const component=currentComponent(); if(!component) return;
+  component.props={...(component.props||{}),[key]:value};
+  markDirty('Unsaved changes'); renderCanvas(); renderInspector(); exposeState();
+}
+
+function renderInspector() {
+  inspector.innerHTML='';
+  const component=currentComponent();
+  selectionLabel.textContent=component?.type || 'Nothing selected';
+  if (!component) { const empty=document.createElement('p'); empty.className='inspector-empty'; empty.textContent='Select an element to configure it.'; inspector.appendChild(empty); return; }
+
+  if (activeInspectorTab === 'style') renderStyleInspector(component); else renderContentInspector(component);
+}
+
+let activeInspectorTab='content';
+
+function renderContentInspector(component) {
+  const p=component.props||{};
+  if (component.type==='Header') {
+    const hp=headerStyles(component);
+    inspector.appendChild(createField('Header title',hp.title,v=>setComponentProp('title',v)));
+    const selectWrap=document.createElement('div'); selectWrap.className='inspector-field'; const label=document.createElement('label'); label.textContent='Design'; const select=document.createElement('select');
+    HEADER_DESIGNS.forEach((design)=>{ const option=document.createElement('option'); option.value=design.id; option.textContent=design.name; option.selected=design.id===hp.designId; select.appendChild(option); });
+    select.addEventListener('change',(e)=>setComponentProp('designId',e.target.value)); selectWrap.append(label,select); inspector.appendChild(selectWrap);
+    inspector.appendChild(createField('Font',hp.fontFamily,v=>setComponentProp('fontFamily',v)));
+    inspector.appendChild(createField('Font size',hp.fontSize,v=>setComponentProp('fontSize',v),{type:'number'}));
+    inspector.appendChild(createField('Title color',hp.titleColor,v=>setComponentProp('titleColor',v)));
+    inspector.appendChild(createField('Menu icon',hp.menuIcon,v=>setComponentProp('menuIcon',v)));
+    inspector.appendChild(createField('Menu icon color',hp.menuIconColor,v=>setComponentProp('menuIconColor',v)));
+    inspector.appendChild(createField('Menu icon size',hp.menuIconSize,v=>setComponentProp('menuIconSize',v),{type:'number'}));
+    const pagesBox=document.createElement('div'); pagesBox.className='inspector-field'; const pagesLabel=document.createElement('label'); pagesLabel.textContent='Pages in menu'; pagesBox.appendChild(pagesLabel);
+    (hp.items||[]).forEach((id)=>{ const page=definition.pages[id]; if(!page)return; const row=document.createElement('div'); row.className='header-page-row'; const name=document.createElement('span'); name.textContent=page.name; const remove=document.createElement('button'); remove.type='button'; remove.className='inspector-mini-button'; remove.textContent='×'; remove.title='Remove from menu'; remove.addEventListener('click',()=>{setComponentProp('items',(component.props.items||[]).filter((item)=>item!==id));}); row.append(name,remove); pagesBox.appendChild(row); });
+    const add=document.createElement('button'); add.type='button'; add.className='header-menu-add'; add.textContent='+ Add Page'; add.addEventListener('click',openPageDialog); pagesBox.appendChild(add); inspector.appendChild(pagesBox);
+  } else {
+    Object.entries(p).forEach(([key,value])=>{
+      if (key==='position' || key.startsWith('_') || typeof value==='object' && !Array.isArray(value)) return;
+      if (Array.isArray(value)) inspector.appendChild(createField(key,value.join('\n'),v=>setComponentProp(key,v.split('\n').map((x)=>x.trim()).filter(Boolean)),{multiline:true}));
+      else if (typeof value==='boolean') {
+        const wrap=document.createElement('label'); wrap.className='inspector-check'; const input=document.createElement('input'); input.type='checkbox'; input.checked=value; input.addEventListener('change',()=>setComponentProp(key,input.checked)); const text=document.createElement('span'); text.textContent=key; wrap.append(input,text); inspector.appendChild(wrap);
+      } else inspector.appendChild(createField(key,value,v=>setComponentProp(key,v)));
+    });
+  }
+  const del=document.createElement('button'); del.type='button'; del.className='danger-button'; del.textContent='Delete Component'; del.addEventListener('click',deleteSelected); inspector.appendChild(del);
+}
+
+function renderStyleInspector(component) {
+  const p=component.props||{};
+  inspector.appendChild(createField('Background',p.background || p.menuBackground || '#ffffff',v=>setComponentProp(component.type==='Header'?'menuBackground':'background',v)));
+  inspector.appendChild(createField('Text color',p.color || p.titleColor || '#111827',v=>setComponentProp(component.type==='Header'?'titleColor':'color',v)));
+  inspector.appendChild(createField('Border radius',p.radius || 12,v=>setComponentProp('radius',v),{type:'number'}));
+  inspector.appendChild(createField('Width',p.width || '',v=>setComponentProp('width',v),{}));
+  inspector.appendChild(createField('Height',p.height || '',v=>setComponentProp('height',v),{}));
+  const reset=document.createElement('button'); reset.type='button'; reset.className='secondary inspector-action'; reset.textContent='Reset style'; reset.addEventListener('click',()=>{const next={...(component.props||{})}; delete next.background; delete next.color; delete next.radius; delete next.width; delete next.height; component.props=next; markDirty('Style reset'); renderCanvas(); renderInspector();}); inspector.appendChild(reset);
+}
+
+function deleteSelected() {
+  const page=activePage(); if (!page || selectedIndex<0) return;
+  page.components.splice(selectedIndex,1); selectedIndex=Math.min(selectedIndex,page.components.length-1); markDirty('Component deleted'); renderCanvas(); renderInspector(); exposeState();
+}
+
+function openPageDialog() {
+  pageNameInput.value=''; $('pageDialogMessage').textContent=''; pageDialog.hidden=false; setTimeout(()=>pageNameInput.focus(),0);
+}
+function closePageDialog() { pageDialog.hidden=true; pageNameInput.value=''; }
+function addPage() {
+  const name=pageNameInput.value.trim(); if(!name){$('pageDialogMessage').textContent='Enter a page name.'; return;}
+  const slugBase=slugify(name); let id=slugBase; let suffix=2; while(definition.pages[id]) id=`${slugBase}-${suffix++}`;
+  const page={id,name,slug:id,components:[],styles:{background:'#ffffff',padding:'16px'},settings:{title:name}};
+  if(activePage()) activePage().components=normalizeComponents(activePage().components||[]);
+  definition.pages[id]=page; ensurePageNavigation(); closePageDialog(); renderPages(); switchPage(id); markDirty('Page added');
+}
+
+function setDevice(device) {
+  if (!['desktop','tablet','mobile'].includes(device)) return;
+  activeDevice=device; window.__indoBuilderDevice=device; document.documentElement.dataset.indoDevice=device;
+  deviceButtons.forEach((button)=>button.classList.toggle('active',button.dataset.device===device));
+  canvas.classList.remove('canvas-desktop','canvas-tablet','canvas-mobile'); canvas.classList.add(`canvas-${device}`);
+  setStatus(`${device[0].toUpperCase()+device.slice(1)} preview`);
+}
+
+function openPreview() {
+  const url=new URL('preview.html',location.href); url.searchParams.set('projectId',projectId); url.searchParams.set('device',activeDevice); location.href=url.href;
+}
+
+async function init() {
+  try {
+    setStatus('Loading project...');
+    await loadProject();
+    renderPages(); renderComponents(); switchPage(currentPageId); setDevice('desktop');
+    dirty=false; setStatus(project?.status==='published'?'Published':'Ready');
+    if (previewButton) previewButton.addEventListener('click',openPreview);
+    if (saveButton) saveButton.addEventListener('click',()=>saveDefinition().catch((error)=>setStatus(`Save failed: ${error.message||'error'}`)));
+    if (publishButton) publishButton.title='Publish this project';
+    addPageButton?.addEventListener('click',openPageDialog);
+    cancelPageButton?.addEventListener('click',closePageDialog);
+    confirmPageButton?.addEventListener('click',()=>addPage());
+    pageNameInput?.addEventListener('keydown',(event)=>{if(event.key==='Enter')addPage();if(event.key==='Escape')closePageDialog();});
+    deviceButtons.forEach((button)=>button.addEventListener('click',()=>setDevice(button.dataset.device)));
+    tabs.forEach((tab,index)=>tab.addEventListener('click',()=>{activeInspectorTab=index===0?'content':'style';tabs.forEach((item)=>item.classList.toggle('active',item===tab));tabs.forEach((item)=>item.setAttribute('aria-selected',String(item===tab)));renderInspector();}));
+    document.addEventListener('keydown',(event)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='s'){event.preventDefault();saveDefinition().catch(()=>{});}if(event.key==='Escape'&&pageDialog&&!pageDialog.hidden)closePageDialog();});
+    window.addEventListener('beforeunload',(event)=>{if(dirty){event.preventDefault();event.returnValue='';}});
+    exposeState();
+  } catch (error) {
+    console.error('Builder init failed',error); setStatus(error.message||'Builder failed to load');
+  }
+}
+
+window.IndoHeaderLibrary = window.IndoHeaderLibrary || null;
+window.IndoBuilder = { save:saveDefinition, addComponent, openPageDialog, setDevice, selectComponent, getDefinition:()=>definition };
+init();
