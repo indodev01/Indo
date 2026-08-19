@@ -1,0 +1,22 @@
+export function normalizePublishedLayout(root){
+  if(!root)return;
+  root.querySelectorAll('.published-shell').forEach(shell=>{
+    shell.style.width='100%';
+    shell.style.maxWidth='100%';
+    shell.style.margin='0';
+    shell.style.padding='0';
+    shell.style.boxSizing='border-box';
+  });
+  root.querySelectorAll('.published-component').forEach(item=>{
+    item.style.boxSizing='border-box';
+    item.style.width='100%';
+    item.style.maxWidth='100%';
+  });
+  root.querySelectorAll('img,video,audio').forEach(media=>{
+    media.style.maxWidth='100%';
+    media.style.boxSizing='border-box';
+  });
+  root.querySelectorAll('button,a').forEach(control=>{
+    control.style.boxSizing='border-box';
+  });
+}
