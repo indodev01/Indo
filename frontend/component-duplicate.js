@@ -1,73 +1,20 @@
+import { supabase } from './auth/supabase-config.js';
+
 const projectId = new URLSearchParams(location.search).get('projectId');
-let clipboard = null;
-
+const CLIPBOARD_KEY = 'indo-component-clipboard';
 const clone = (value) => value == null ? value : JSON.parse(JSON.stringify(value));
-const makeId = (type = 'component') => `${String(type).toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-
-function getState() {
-  if (!Array.isArray(window.components)) return null;
-  const index = Number.isInteger(window.selectedIndex) ? window.selectedIndex : -1;
-  if (index < 0 || !window.components[index]) return null;
-  return { index, component: clone(window.components[index]) };
-}
-
-function duplicateSelected() {
-  const state = getState();
-  if (!state) return false;
-  const copy = clone(state.component);
-  copy.id = makeId(copy.type);
-  if (copy.props && typeof copy.props === 'object') copy.props = clone(copy.props);
-  window.components.splice(state.index + 1, 0, copy);
-  window.selectedIndex = state.index + 1;
-  window.renderCanvas?.();
-  window.renderInspector?.();
-  window.showStatus?.(`${copy.type} duplicated`);
-  return true;
-}
-
-function copySelected() {
-  const state = getState();
-  if (!state) return;
-  clipboard = state.component;
-  window.showStatus?.(`${state.component.type} copied`);
-}
-
-function pasteSelected() {
-  if (!clipboard || !Array.isArray(window.components)) return;
-  const copy = clone(clipboard);
-  copy.id = makeId(copy.type);
-  window.components.push(copy);
-  window.selectedIndex = window.components.length - 1;
-  window.renderCanvas?.();
-  window.renderInspector?.();
-  window.showStatus?.(`${copy.type} pasted`);
-}
-
-function install() {
-  const actions = document.querySelector('.topbar-actions');
-  if (!actions || document.getElementById('duplicateComponentButton')) return;
-  const style = document.createElement('style');
-  style.textContent = '.component-action-button{min-width:34px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#11182a;color:#fff;font-weight:800;cursor:pointer}.component-action-button:disabled{opacity:.4;cursor:not-allowed}';
-  document.head.appendChild(style);
-  const duplicate = document.createElement('button');
-  duplicate.id = 'duplicateComponentButton'; duplicate.className = 'component-action-button'; duplicate.type = 'button'; duplicate.title = 'Duplicate selected component'; duplicate.textContent = '⧉';
-  duplicate.onclick = duplicateSelected;
-  actions.insertBefore(duplicate, actions.firstChild);
-}
-
-document.addEventListener('keydown', (event) => {
-  if (event.target.matches?.('input,textarea,select,[contenteditable="true"]')) return;
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
-    const state = getState();
-    if (state) { event.preventDefault(); copySelected(); }
-  }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
-    if (clipboard) { event.preventDefault(); pasteSelected(); }
-  }
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd') {
-    if (getState()) { event.preventDefault(); duplicateSelected(); }
-  }
-});
-
+const makeId = (type='component') => `${String(type).toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+const status = (text) => { const el=document.getElementById('projectStatus'); if(el) el.textContent=text; };
+function selectedIndex(){ const el=document.querySelector('#canvas .canvas-item.selected'); return el ? Number(el.dataset.index) : -1; }
+function currentPageName(){ return document.querySelector('#pageList .page-button.active')?.textContent?.trim() || document.getElementById('pageStatus')?.textContent?.trim() || 'Home'; }
+function currentPageId(pages){ return Object.entries(pages||{}).find(([,p]) => p?.name === currentPageName())?.[0] || Object.keys(pages||{})[0] || 'home'; }
+function freshCopy(component){ const copy=clone(component); copy.id=makeId(copy.type); return copy; }
+async function readProject(){ const {data,error}=await supabase.from('projects').select('id,pages,app_definition').eq('id',projectId).maybeSingle(); if(error||!data) throw error||new Error('Project not found'); return data; }
+async function writeProject(data){ const {error}=await supabase.from('projects').update({pages:data.pages,app_definition:data.app_definition,updated_at:new Date().toISOString()}).eq('id',projectId); if(error) throw error; }
+function syncDefinition(data){ const definition=(data.app_definition&&typeof data.app_definition==='object')?clone(data.app_definition):{}; definition.pages=clone(data.pages||definition.pages||{}); definition.components={}; definition.componentsList=definition.pages.home?.components||[]; return definition; }
+async function duplicateSelected(){ try{ const index=selectedIndex(); if(index<0){status('Select a component first');return;} const data=await readProject(); const pages=clone(data.pages||data.app_definition?.pages||{}); const pageId=currentPageId(pages),page=pages[pageId]; if(!page) throw new Error('Current page not found'); page.components=Array.isArray(page.components)?page.components:[]; if(!page.components[index]){status('Selected component is not saved yet');return;} page.components.splice(index+1,0,freshCopy(page.components[index])); data.pages=pages; data.app_definition=syncDefinition(data); await writeProject(data); status('Component duplicated'); setTimeout(()=>location.reload(),250); }catch(error){console.error(error);status(`Duplicate failed: ${error.message||'error'}`);} }
+async function copySelected(){ try{ const index=selectedIndex(); if(index<0){status('Select a component first');return;} const data=await readProject(); const pages=data.pages||data.app_definition?.pages||{}; const page=pages[currentPageId(pages)],component=page?.components?.[index]; if(!component){status('Selected component is not saved yet');return;} localStorage.setItem(CLIPBOARD_KEY,JSON.stringify(clone(component))); status(`${component.type} copied`); }catch(error){console.error(error);status('Copy failed');} }
+async function pasteSelected(){ try{ const raw=localStorage.getItem(CLIPBOARD_KEY); if(!raw){status('Nothing copied yet');return;} const data=await readProject(); const pages=clone(data.pages||data.app_definition?.pages||{}); const pageId=currentPageId(pages),page=pages[pageId]; if(!page) throw new Error('Current page not found'); page.components=Array.isArray(page.components)?page.components:[]; const index=selectedIndex(),copy=freshCopy(JSON.parse(raw)); page.components.splice(index>=0?index+1:page.components.length,0,copy); data.pages=pages; data.app_definition=syncDefinition(data); await writeProject(data); status(`${copy.type} pasted`); setTimeout(()=>location.reload(),250); }catch(error){console.error(error);status(`Paste failed: ${error.message||'error'}`);} }
+function install(){ const actions=document.querySelector('.topbar-actions'); if(!actions||document.getElementById('duplicateComponentButton'))return; const style=document.createElement('style'); style.textContent='.component-action-button{min-width:34px;padding:8px 10px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:#11182a;color:#fff;font-weight:800;cursor:pointer}.component-action-button:hover{box-shadow:0 0 0 2px rgba(124,58,246,.16)}'; document.head.appendChild(style); const button=document.createElement('button'); button.id='duplicateComponentButton';button.className='component-action-button';button.type='button';button.title='Duplicate selected component';button.textContent='⧉';button.onclick=duplicateSelected;actions.insertBefore(button,actions.firstChild); }
+document.addEventListener('keydown',(event)=>{ if(event.target.matches?.('input,textarea,select,[contenteditable="true"]'))return; if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='c'){event.preventDefault();copySelected();} if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='v'){event.preventDefault();pasteSelected();} if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){event.preventDefault();duplicateSelected();} });
 install();
-window.componentDuplicate = { duplicateSelected, copySelected, pasteSelected };
