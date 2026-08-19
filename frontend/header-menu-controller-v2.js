@@ -36,10 +36,10 @@ document.addEventListener('click', (event) => {
   event.stopPropagation();
   event.stopImmediatePropagation();
 
-  // Some browsers expose detail=2 on the second click. Handle it directly.
+  // The browser will send the real dblclick event immediately after the
+  // second click. Just cancel the pending single-click action here.
   if (event.detail >= 2) {
     clearPending(menu);
-    relay(menu, 'dblclick');
     return;
   }
 
