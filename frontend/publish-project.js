@@ -18,10 +18,8 @@ async function publishProject() {
     const before = await supabase.from('projects').select('updated_at').eq('id', projectId).maybeSingle();
     const beforeUpdated = before.data?.updated_at || '';
 
-    // First persist the latest editor changes using the existing Save action.
     saveButton?.click();
 
-    // Give the existing save handler time to finish, then verify the project was persisted.
     let saved = false;
     for (let i = 0; i < 12; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 300));
@@ -46,8 +44,11 @@ async function publishProject() {
 
     setStatus('Published');
     window.setTimeout(() => {
-      window.location.assign(new URL('index.html', window.location.href).href);
-    }, 500);
+      const previewUrl = new URL('preview.html', window.location.href);
+      previewUrl.searchParams.set('projectId', projectId);
+      previewUrl.searchParams.set('page', 'home');
+      window.location.assign(previewUrl.href);
+    }, 300);
   } catch (error) {
     console.error(error);
     setStatus(error.message || 'Publish failed');
