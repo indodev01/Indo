@@ -1,15 +1,22 @@
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function safeField(value,index){const raw=String(value??`field${index+1}`).trim();return {label:raw||`Field ${index+1}`,name:raw.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||`field_${index+1}`}}
 
 export function renderPublishedComponent(component){
  const type=String(component?.type||'Text').toLowerCase();
  const p=component?.props||{};
  const text=esc(p.text??p.label??p.content??'');
  if(type==='text'||type==='heading'||type==='paragraph')return `<div class="pub-text">${text}</div>`;
- if(type==='button'||type==='cta')return `<button class="pub-button" type="button">${text||'Button'}</button>`;
+ if(type==='button'||type==='cta')return `<button class="pub-button" type="button" data-indo-action>${text||'Button'}</button>`;
  if(type==='image')return `<img class="pub-image" src="${esc(p.src||p.url||'')}" alt="${esc(p.alt||'')}" loading="lazy">`;
  if(type==='video'||type==='videoplayer')return `<video class="pub-video" controls preload="metadata" src="${esc(p.src||p.url||'')}"></video>`;
  if(type==='divider')return '<hr class="pub-divider">';
  if(type==='spacer')return `<div style="height:${Number(p.height)||32}px"></div>`;
  if(type==='link')return `<a class="pub-link" href="${esc(p.href||p.url||'#')}">${text||'Link'}</a>`;
+ if(type==='forms'||type==='form'){
+   const fields=Array.isArray(p.fields)&&p.fields.length?p.fields:['Name','Email','Message'];
+   const inputs=fields.map((field,index)=>{const f=safeField(field,index);const tag=f.name==='message'||f.name==='description'?'textarea':'input';const attrs=tag==='textarea'?`name="${esc(f.name)}" rows="4" placeholder="${esc(f.label)}"`:`name="${esc(f.name)}" type="${f.name==='email'?'email':'text'}" placeholder="${esc(f.label)}"`;return `<label class="pub-field"><span>${esc(f.label)}</span><${tag} ${attrs} required></${tag}></label>`}).join('');
+   return `<form class="pub-form"><h2>${esc(p.title||'Contact us')}</h2>${inputs}<button class="pub-button" type="submit">${esc(p.submitLabel||'Submit')}</button><small class="pub-form-message" aria-live="polite"></small></form>`;
+ }
+ if(type==='input')return `<input class="pub-input" name="${esc(p.name||'value')}" placeholder="${esc(p.placeholder||p.label||'')}" type="${esc(p.inputType||'text')}">`;
  return `<div class="pub-card"><strong>${esc(component?.type||'Component')}</strong>${text?`<div>${text}</div>`:''}</div>`;
 }
