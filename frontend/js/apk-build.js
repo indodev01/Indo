@@ -10,12 +10,16 @@ function versionName(){return '1.0'}
 function status(text){const el=document.getElementById('projectStatus');if(el)el.textContent=text}
 
 function closeDialog(){document.getElementById('apkBuildDialog')?.remove()}
+function copy(value){if(navigator.clipboard)navigator.clipboard.writeText(value).catch(()=>{})}
+
 function showDialog(details){
   closeDialog();
   const backdrop=document.createElement('div');backdrop.id='apkBuildDialog';backdrop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:99999;display:grid;place-items:center;padding:24px';
-  const panel=document.createElement('div');panel.style.cssText='width:min(620px,100%);background:#0d1324;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.45)';
-  panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;opacity:.62;font-weight:800;letter-spacing:.08em">ANDROID BUILD</div><h2 style="margin:6px 0 0">Build APK</h2></div><button id="apkClose" style="background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer">×</button></div><p style="color:#aab3c6;line-height:1.5">Build record created. GitHub Actions must be started from the workflow page because this frontend does not have permission to dispatch GitHub workflows.</p><div style="display:grid;gap:10px;margin:18px 0"><label>Live URL<input readonly value="${details.liveUrl}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label><label>Application ID<input readonly value="${details.applicationId}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label><label>Version<input readonly value="${details.versionName}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label></div><div style="display:flex;justify-content:flex-end;gap:10px"><button id="apkDone" style="padding:10px 14px;border-radius:9px;border:1px solid #2b3650;background:#151d31;color:#fff;cursor:pointer">Close</button><a href="${WORKFLOW_URL}" target="_blank" rel="noopener" style="padding:10px 14px;border-radius:9px;background:#6d4aff;color:#fff;text-decoration:none;font-weight:800">Open GitHub Build</a></div>`;
-  backdrop.appendChild(panel);document.body.appendChild(backdrop);document.getElementById('apkClose').onclick=closeDialog;document.getElementById('apkDone').onclick=closeDialog;
+  const panel=document.createElement('div');panel.style.cssText='width:min(680px,100%);max-height:90vh;overflow:auto;background:#0d1324;color:#fff;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.45)';
+  panel.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><div style="font-size:12px;opacity:.62;font-weight:800;letter-spacing:.08em">ANDROID BUILD</div><h2 style="margin:6px 0 0">Build APK</h2></div><button id="apkClose" style="background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer">×</button></div><p id="apkBuildMessage" style="color:#aab3c6;line-height:1.5">Build record created. Open the GitHub workflow, run it with these values, then keep this window open for status updates.</p><div style="display:grid;gap:10px;margin:18px 0"><label>Live URL<input readonly value="${details.liveUrl}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label><label>Application ID<input readonly value="${details.applicationId}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label><label>Version<input readonly value="${details.versionName}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label><label>Build token<input id="apkBuildToken" readonly value="${details.buildToken}" style="width:100%;margin-top:5px;padding:10px;border-radius:8px;border:1px solid #28324a;background:#111a2e;color:#fff"></label></div><div id="apkResult" style="margin:14px 0"></div><div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap"><button id="apkCopyToken" style="padding:10px 14px;border-radius:9px;border:1px solid #2b3650;background:#151d31;color:#fff;cursor:pointer">Copy token</button><button id="apkDone" style="padding:10px 14px;border-radius:9px;border:1px solid #2b3650;background:#151d31;color:#fff;cursor:pointer">Close</button><a href="${WORKFLOW_URL}" target="_blank" rel="noopener" style="padding:10px 14px;border-radius:9px;background:#6d4aff;color:#fff;text-decoration:none;font-weight:800">Open GitHub Build</a></div>`;
+  backdrop.appendChild(panel);document.body.appendChild(backdrop);
+  document.getElementById('apkClose').onclick=closeDialog;document.getElementById('apkDone').onclick=closeDialog;document.getElementById('apkCopyToken').onclick=()=>copy(details.buildToken);
+  pollBuild(details.buildId);
 }
 
 async function loadProject(){
@@ -26,6 +30,27 @@ async function loadProject(){
   return result.data;
 }
 
+async function pollBuild(buildId){
+  const started=Date.now();
+  const timer=setInterval(async()=>{
+    try{
+      const {data,error}=await supabase.from('app_builds').select('status,artifact_url,error,completed_at').eq('id',buildId).maybeSingle();
+      if(error||!data)return;
+      const message=document.getElementById('apkBuildMessage');const result=document.getElementById('apkResult');
+      if(message)message.textContent=`Build status: ${data.status}`;
+      status(`APK build • ${data.status}`);
+      if(data.status==='success'){
+        clearInterval(timer);
+        if(result)result.innerHTML=`<div style="padding:14px;border:1px solid rgba(84,214,129,.25);background:rgba(84,214,129,.08);border-radius:10px"><strong>APK build completed.</strong><div style="margin-top:8px"><a href="${data.artifact_url||'#'}" target="_blank" rel="noopener" style="color:#8fa7ff">Open build artifacts</a></div></div>`;
+      } else if(data.status==='failed'){
+        clearInterval(timer);
+        if(result)result.innerHTML=`<div style="padding:14px;border:1px solid rgba(255,95,95,.25);background:rgba(255,95,95,.08);border-radius:10px"><strong>APK build failed.</strong><div style="margin-top:8px;color:#ffb0b0">${String(data.error||'Check the GitHub Actions logs.').replace(/[<>]/g,'')}</div></div>`;
+      }
+    }catch(e){console.error(e)}
+    if(Date.now()-started>15*60*1000)clearInterval(timer);
+  },2500);
+}
+
 async function createBuild(){
   const button=document.getElementById('buildApkButton');if(button)button.disabled=true;status('Preparing APK build...');
   try{
@@ -33,10 +58,10 @@ async function createBuild(){
     const slug=project.app_definition?.publishing?.slug;
     if(project.status!=='published' || !slug) throw new Error('Publish this project first, then build the APK.');
     const liveUrl=new URL(`live-app.html?slug=${encodeURIComponent(slug)}`,new URL('../html/live-app.html',location.href)).href;
-    const applicationId=appIdFrom(slug);const version=versionName();
-    const {data:build,error}=await supabase.from('app_builds').insert({project_id:project.id,user_id:project.user_id,platform:'android',status:'queued'}).select('id').single();
+    const applicationId=appIdFrom(slug);const version=versionName();const buildToken=crypto.randomUUID();
+    const {data:build,error}=await supabase.from('app_builds').insert({project_id:project.id,user_id:project.user_id,platform:'android',status:'queued',build_token:buildToken}).select('id').single();
     if(error)throw error;
-    status(`Build queued • ${build.id.slice(0,8)}`);showDialog({buildId:build.id,liveUrl,applicationId,versionName:version});
+    status(`Build queued • ${build.id.slice(0,8)}`);showDialog({buildId:build.id,buildToken,liveUrl,applicationId,versionName:version});
   }catch(error){console.error(error);status(error.message||'APK build preparation failed');}finally{if(button)button.disabled=false;}
 }
 
