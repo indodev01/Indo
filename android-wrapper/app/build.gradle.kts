@@ -3,28 +3,35 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val buildApplicationId = (project.findProperty("APPLICATION_ID") as String?)?.trim().takeUnless { it.isNullOrBlank() }
+    ?: "com.indodev01.generated"
+val buildVersionName = (project.findProperty("VERSION_NAME") as String?)?.trim().takeUnless { it.isNullOrBlank() }
+    ?: "1.0"
+val liveUrl = (project.findProperty("LIVE_URL") as String?)?.trim().takeUnless { it.isNullOrBlank() }
+    ?: "https://indodev01.github.io/Indo/frontend/html/live-app.html"
+
 android {
     namespace = "com.indodev01.generated"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.indodev01.generated"
+        applicationId = buildApplicationId
         minSdk = 23
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = buildVersionName
     }
 
     buildFeatures { buildConfig = true }
-    buildTypes {
-        release { isMinifyEnabled = false }
-    }
 
-    buildTypes.getByName("debug") {
-        buildConfigField("String", "LIVE_URL", "\"${project.findProperty("LIVE_URL") ?: "https://indodev01.github.io/Indo/frontend/html/live-app.html"}\"")
-    }
-    buildTypes.getByName("release") {
-        buildConfigField("String", "LIVE_URL", "\"${project.findProperty("LIVE_URL") ?: "https://indodev01.github.io/Indo/frontend/html/live-app.html"}\"")
+    buildTypes {
+        getByName("release") { isMinifyEnabled = false }
+        getByName("debug") {
+            buildConfigField("String", "LIVE_URL", "\"$liveUrl\"")
+        }
+        getByName("release") {
+            buildConfigField("String", "LIVE_URL", "\"$liveUrl\"")
+        }
     }
 }
 
