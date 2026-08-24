@@ -46,8 +46,7 @@ jobs:
         working-directory: android-wrapper
     env:
       GRADLE_OPTS: '-Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false'
-      BUILD_CALLBACK_URL: 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback'
-      BUILD_CALLBACK_SECRET: ${{ secrets.INDO_BUILD_CALLBACK_SECRET }}
+      BUILD_CALLBACK_URL: 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback-v2'
 
     steps:
       - name: Checkout
@@ -55,17 +54,12 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Validate callback security
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$BUILD_CALLBACK_SECRET"
-
       - name: Validate APK inputs
         shell: bash
         run: |
           set -euo pipefail
           [[ -n "${{ inputs.build_token }}" ]] || { echo 'build_token is required'; exit 1; }
+          [[ "${{ inputs.build_token }}" =~ ^[A-Za-z0-9._:-]{24,200}$ ]] || { echo 'build_token must be 24-200 safe characters'; exit 1; }
           [[ "${{ inputs.live_url }}" =~ ^https:// ]] || { echo 'live_url must use HTTPS'; exit 1; }
           [[ "${{ inputs.application_id }}" =~ ^com\.[a-z0-9]+(\.[a-z0-9]+)+$ ]] || { echo 'Invalid application_id'; exit 1; }
           [[ "${{ inputs.version_name }}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo 'Invalid version_name'; exit 1; }
@@ -80,7 +74,7 @@ jobs:
         run: |
           curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
-            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
+            -H "x-indo-build-token: ${{ inputs.build_token }}" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"building"}'
 
       - name: Set up Java
@@ -151,7 +145,7 @@ jobs:
         run: |
           curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
-            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
+            -H "x-indo-build-token: ${{ inputs.build_token }}" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Signed release APK build failed. Check the latest GitHub Actions run for logs."}'
           exit 1
 
@@ -188,7 +182,7 @@ jobs:
         run: |
           curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
-            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
+            -H "x-indo-build-token: ${{ inputs.build_token }}" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"APK built successfully, but publishing the direct download failed. Check the GitHub Actions run logs."}'
           exit 1
 
@@ -199,5 +193,5 @@ jobs:
         run: |
           curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
-            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
+            -H "x-indo-build-token: ${{ inputs.build_token }}" \
             --data-binary "{\"build_token\":\"${{ inputs.build_token }}\",\"status\":\"success\",\"artifact_url\":\"${DIRECT_APK_URL}\"}"
