@@ -65,12 +65,16 @@ async function refreshPaymentHealth() {
   paymentHealthBusy = true;
   const badge = ensurePaymentHealth();
   try {
-    const { data, error } = await supabase.functions.invoke('payment-config-health');
+    const { data, error } = await supabase.functions.invoke('payment-config-health', { method: 'GET' });
     if (error) throw error;
-    if (data?.ready === true) {
+    if (data?.ready === true || data?.configured === true || data?.ok === true) {
       setPaymentHealth(badge, 'ready', 'Razorpay configuration is available.');
     } else {
-      const missing = Array.isArray(data?.missing_configuration) ? data.missing_configuration.join(', ') : 'Required payment configuration';
+      const missing = Array.isArray(data?.missing_configuration)
+        ? data.missing_configuration.join(', ')
+        : Array.isArray(data?.checks?.missing)
+          ? data.checks.missing.join(', ')
+          : 'Required payment configuration';
       setPaymentHealth(badge, 'missing', `Missing: ${missing}`);
     }
   } catch (error) {
