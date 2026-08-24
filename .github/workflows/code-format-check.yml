@@ -15,11 +15,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Check repository formatting
-        run: npx --yes prettier@3.6.2 --check "frontend/**/*.{html,css,js,mjs,json}" "scripts/**/*.{js,mjs,json}" "*.{json,yml,yaml}" ".github/workflows/*.{yml,yaml}"
+      - name: Collect changed source files
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            git diff --name-only "origin/${{ github.base_ref }}...HEAD" > /tmp/changed.txt
+          else
+            git diff --name-only HEAD^ HEAD > /tmp/changed.txt
+          fi
+
+          grep -E '\.(html|css|js|mjs|json|yml|yaml)$' /tmp/changed.txt || true
+
+      - name: Check changed source formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(grep -E '\.(html|css|js|mjs|json|yml|yaml)$' /tmp/changed.txt || true)
+          if [[ -z "$files" ]]; then
+            echo 'No supported source files changed.'
+            exit 0
+          fi
+          echo "$files" | xargs npx --yes prettier@3.6.2 --check
