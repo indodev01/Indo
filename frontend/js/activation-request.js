@@ -8,6 +8,7 @@ if (!projectId || !actions) throw new Error('Activation UI requires a project.')
 
 let refreshTimer = null;
 let paymentBusy = false;
+let paymentHealthBusy = false;
 
 async function loadProject() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -23,6 +24,61 @@ async function loadRequest() {
   const { data, error } = await supabase.from('activation_requests').select('id,status,requested_plan,created_at,reviewed_at').eq('project_id', projectId).eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+function ensurePaymentHealth() {
+  let badge = document.getElementById('paymentHealth');
+  if (badge) return badge;
+  badge = document.createElement('span');
+  badge.id = 'paymentHealth';
+  badge.setAttribute('role', 'status');
+  badge.textContent = 'Payment: checking…';
+  badge.style.cssText = 'display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #334155;border-radius:999px;font-size:11px;font-weight:700;color:#cbd5e1;background:#0f172a;white-space:nowrap';
+  actions.insertBefore(badge, actions.firstChild);
+  return badge;
+}
+
+function setPaymentHealth(badge, state, details = '') {
+  badge.title = details;
+  if (state === 'ready') {
+    badge.textContent = 'Payment: ready';
+    badge.style.borderColor = '#166534';
+    badge.style.color = '#bbf7d0';
+    badge.style.background = '#052e16';
+    return;
+  }
+  if (state === 'missing') {
+    badge.textContent = 'Payment: config needed';
+    badge.style.borderColor = '#854d0e';
+    badge.style.color = '#fde68a';
+    badge.style.background = '#422006';
+    return;
+  }
+  badge.textContent = 'Payment: unavailable';
+  badge.style.borderColor = '#7f1d1d';
+  badge.style.color = '#fecaca';
+  badge.style.background = '#450a0a';
+}
+
+async function refreshPaymentHealth() {
+  if (paymentHealthBusy) return;
+  paymentHealthBusy = true;
+  const badge = ensurePaymentHealth();
+  try {
+    const { data, error } = await supabase.functions.invoke('payment-config-health');
+    if (error) throw error;
+    if (data?.ready === true) {
+      setPaymentHealth(badge, 'ready', 'Razorpay configuration is available.');
+    } else {
+      const missing = Array.isArray(data?.missing_configuration) ? data.missing_configuration.join(', ') : 'Required payment configuration';
+      setPaymentHealth(badge, 'missing', `Missing: ${missing}`);
+    }
+  } catch (error) {
+    console.error(error);
+    setPaymentHealth(badge, 'unavailable', error?.message || 'Could not check payment configuration.');
+  } finally {
+    paymentHealthBusy = false;
+  }
 }
 
 function ensureButton() {
@@ -152,6 +208,9 @@ async function startPayment(button) {
   }
 }
 
+ensurePaymentHealth();
+refreshPaymentHealth();
 refresh();
 refreshTimer = window.setInterval(refresh, 10000);
+window.setInterval(refreshPaymentHealth, 60000);
 window.addEventListener('pagehide', () => { if (refreshTimer) window.clearInterval(refreshTimer); });
