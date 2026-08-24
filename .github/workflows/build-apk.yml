@@ -53,6 +53,21 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Validate APK inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${{ inputs.build_token }}" ]] || { echo 'build_token is required'; exit 1; }
+          [[ "${{ inputs.live_url }}" =~ ^https:// ]] || { echo 'live_url must use HTTPS'; exit 1; }
+          [[ "${{ inputs.application_id }}" =~ ^com\.[a-z0-9]+(\.[a-z0-9]+)+$ ]] || { echo 'Invalid application_id'; exit 1; }
+          [[ "${{ inputs.version_name }}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo 'Invalid version_name'; exit 1; }
+          if [[ -n "${{ inputs.icon_url }}" ]]; then
+            [[ "${{ inputs.icon_url }}" =~ ^https:// ]] || { echo 'icon_url must use HTTPS'; exit 1; }
+          fi
+          if [[ -n "${{ inputs.splash_url }}" ]]; then
+            [[ "${{ inputs.splash_url }}" =~ ^https:// ]] || { echo 'splash_url must use HTTPS'; exit 1; }
+          fi
+
       - name: Notify build started
         run: |
           curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
