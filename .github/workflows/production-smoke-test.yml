@@ -11,9 +11,38 @@ on:
         description: 'Supabase project URL'
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'scripts/production-smoke-test.mjs'
+      - '.github/workflows/production-smoke-test.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'scripts/production-smoke-test.mjs'
+      - '.github/workflows/production-smoke-test.yml'
 
 jobs:
+  wiring-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate production wiring
+        run: |
+          set -euo pipefail
+          grep -q "start-apk-build-v4" frontend/js/apk-build.js
+          grep -q "icon_url" frontend/js/apk-build.js
+          grep -q "splash_url" frontend/js/apk-build.js
+          grep -q "create-payment-order-v2" frontend/js/payment-client.js
+          grep -q "verify-razorpay-payment-v2" frontend/js/payment-verification.js
+          grep -q "payment-config-health" frontend/js/razorpay-checkout.js
+          grep -q "start-apk-build-v4" scripts/production-smoke-test.mjs
+          echo "Production wiring validation passed."
+
   smoke-test:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
