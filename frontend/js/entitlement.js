@@ -7,7 +7,9 @@ export function normalizeEntitlement(value) {
     status: e.status || 'not_started',
     trialStartedAt: e.trialStartedAt || null,
     trialExpiresAt: e.trialExpiresAt || null,
-    activatedAt: e.activatedAt || null
+    activatedAt: e.activatedAt || null,
+    activationReference: e.activationReference || null,
+    activatedPlan: e.activatedPlan || null
   };
 }
 
@@ -28,6 +30,20 @@ export function startTrial(value, now = new Date()) {
   const started = new Date(now).toISOString();
   const expires = new Date(new Date(now).getTime() + TRIAL_DURATION_MS).toISOString();
   return { ...e, plan: 'trial', status: 'trial', trialStartedAt: started, trialExpiresAt: expires };
+}
+
+// Use only after payment has been verified server-side. This helper does not verify payments itself.
+export function activateEntitlement(value, { plan = 'paid', activatedAt = new Date().toISOString(), activationReference = null } = {}) {
+  const e = normalizeEntitlement(value);
+  return {
+    ...e,
+    plan,
+    status: 'activated',
+    activatedAt,
+    activationReference,
+    activatedPlan: plan,
+    trialExpiresAt: e.trialExpiresAt || null
+  };
 }
 
 export function formatRemaining(ms) {
