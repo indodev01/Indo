@@ -25,7 +25,7 @@ jobs:
           const checks = [
             ['frontend/js/apk-build.js', 'start-apk-build-v4'],
             ['frontend/js/payment-client.js', 'create-payment-order-v2'],
-            ['frontend/js/payment-verification.js', 'verify-razorpay-payment-v2'],
+            ['frontend/js/payment-verification.js', 'verify-razorpay-payment-v3'],
             ['frontend/html/builder-v2.html', 'apk-build.js?v=7'],
             ['scripts/production-smoke-test.mjs', 'start-apk-build-v4'],
           ];
