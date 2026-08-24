@@ -1,1 +1,66 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live App — Indo</title><link rel="stylesheet" href="../css/responsive-v1.css?v=1"><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:Inter,system-ui,sans-serif;background:#f6f7fb;color:#111827}.app{min-height:100vh}.shell{width:min(100%,960px);margin:auto;min-height:100vh;background:#fff}.status{padding:24px;text-align:center;color:#6b7280}.error{padding:24px;text-align:center;color:#b91c1c}@media (max-width:600px){.shell{width:100%}.status,.error{padding:18px 12px}}</style></head><body><main id="app" class="app"><div class="shell"><div id="status" class="status">Loading app…</div><div id="canvas"></div></div></main><script type="module" src="../js/live-app.js?v=1"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live App — Indo</title>
+  <link rel="stylesheet" href="../css/responsive-v1.css?v=1">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
+      background: #f6f7fb;
+      color: #111827;
+    }
+
+    .app {
+      min-height: 100vh;
+    }
+
+    .shell {
+      width: min(100%, 960px);
+      margin: auto;
+      min-height: 100vh;
+      background: #fff;
+    }
+
+    .status,
+    .error {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .status {
+      color: #6b7280;
+    }
+
+    .error {
+      color: #b91c1c;
+    }
+
+    @media (max-width: 600px) {
+      .shell {
+        width: 100%;
+      }
+
+      .status,
+      .error {
+        padding: 18px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" class="app">
+    <div class="shell">
+      <div id="status" class="status">Loading app…</div>
+      <div id="canvas"></div>
+    </div>
+  </main>
+
+  <script type="module" src="../js/live-app.js?v=1"></script>
+</body>
+</html>
