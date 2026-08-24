@@ -1,0 +1,33 @@
+name: Indo Production Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Published Indo base URL'
+        required: true
+        type: string
+      supabase_url:
+        description: 'Supabase project URL'
+        required: true
+        type: string
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run production smoke tests
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          SUPABASE_URL: ${{ inputs.supabase_url }}
+        run: node scripts/production-smoke-test.mjs
