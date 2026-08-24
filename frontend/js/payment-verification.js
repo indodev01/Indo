@@ -1,6 +1,6 @@
 import { supabase } from './auth/supabase-config.js';
 
-const FUNCTION_SLUG = 'verify-razorpay-payment-v2';
+const FUNCTION_SLUG = 'verify-razorpay-payment-v3';
 
 export async function verifyRazorpayPayment({ projectId, plan, orderId, paymentId, signature }) {
   if (!projectId || !orderId || !paymentId || !signature) {
