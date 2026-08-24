@@ -1,0 +1,75 @@
+name: Indo Release Readiness
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  release-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate critical files and wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_files=(
+            frontend/html/index.html
+            frontend/html/live-app.html
+            frontend/html/builder-v2.html
+            frontend/js/apk-build.js
+            frontend/js/payment-client.js
+            frontend/js/payment-verification.js
+            android-wrapper/app/build.gradle.kts
+            android-wrapper/app/src/main/AndroidManifest.xml
+            .github/workflows/build-apk.yml
+            .github/workflows/production-smoke-test.yml
+          )
+          for file in "${required_files[@]}"; do
+            test -f "$file" || { echo "FAIL: missing $file"; exit 1; }
+            echo "PASS: $file"
+          done
+
+      - name: Validate payment and APK references
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const checks = [
+            ['frontend/js/apk-build.js', 'start-apk-build-v4'],
+            ['frontend/js/payment-client.js', 'create-payment-order-v2'],
+            ['frontend/js/payment-verification.js', 'verify-razorpay-payment-v2'],
+            ['frontend/html/builder-v2.html', 'apk-build.js?v=7'],
+            ['android-wrapper/app/build.gradle.kts', 'RELEASE_KEYSTORE_PATH'],
+            ['android-wrapper/app/build.gradle.kts', 'APPLICATION_ID'],
+            ['.github/workflows/build-apk.yml', 'INDO_KEYSTORE_B64'],
+            ['.github/workflows/build-apk.yml', 'indo-app-v${{ inputs.version_name }}.apk'],
+          ];
+          for (const [file, needle] of checks) {
+            const text = fs.readFileSync(file, 'utf8');
+            if (!text.includes(needle)) {
+              console.error(`FAIL: ${file} missing ${needle}`);
+              process.exit(1);
+            }
+            console.log(`PASS: ${file} -> ${needle}`);
+          }
+          NODE
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check scripts/production-smoke-test.mjs
+          node --check frontend/js/apk-build.js
+          node --check frontend/js/payment-client.js
+          node --check frontend/js/payment-verification.js
+
+      - name: Validate APK Gradle structure
+        working-directory: android-wrapper
+        run: |
+          test -f gradlew
+          test -f settings.gradle.kts
+          test -f app/build.gradle.kts
+          test -f app/src/main/AndroidManifest.xml
+          echo 'APK Gradle structure OK'
