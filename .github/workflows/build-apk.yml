@@ -21,6 +21,16 @@ on:
         description: 'One-time build callback token'
         required: true
         type: string
+      icon_url:
+        description: 'HTTPS app icon image URL'
+        required: false
+        default: ''
+        type: string
+      splash_url:
+        description: 'HTTPS splash image URL'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: indo-apk-${{ inputs.build_token }}
@@ -72,6 +82,23 @@ jobs:
           printf '%s' "$KEYSTORE_B64" | base64 --decode > signing/indo-release.jks
           test -s signing/indo-release.jks
 
+      - name: Prepare optional app assets
+        shell: bash
+        env:
+          ICON_URL: ${{ inputs.icon_url }}
+          SPLASH_URL: ${{ inputs.splash_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p app/src/main/res/drawable app/src/main/res/values
+          if [[ -n "$ICON_URL" ]]; then
+            curl -fL --retry 3 --max-time 30 "$ICON_URL" -o app/src/main/res/drawable/indo_icon.png
+            test -s app/src/main/res/drawable/indo_icon.png
+          fi
+          if [[ -n "$SPLASH_URL" ]]; then
+            curl -fL --retry 3 --max-time 30 "$SPLASH_URL" -o app/src/main/res/drawable/indo_splash.png
+            test -s app/src/main/res/drawable/indo_splash.png
+          fi
+
       - name: Verify Gradle environment
         run: gradle --version
 
@@ -88,6 +115,8 @@ jobs:
           -PAPPLICATION_ID="${{ inputs.application_id }}"
           -PVERSION_NAME="${{ inputs.version_name }}"
           -PVERSION_CODE="${{ github.run_number }}"
+          -PAPP_ICON_FILE="$PWD/app/src/main/res/drawable/indo_icon.png"
+          -PSPLASH_FILE="$PWD/app/src/main/res/drawable/indo_splash.png"
           -PRELEASE_KEYSTORE_PATH="signing/indo-release.jks"
           -PRELEASE_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
           -PRELEASE_KEY_ALIAS="$KEY_ALIAS"
