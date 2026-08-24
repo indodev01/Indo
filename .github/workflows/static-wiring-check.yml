@@ -39,9 +39,13 @@ jobs:
           }
           NODE
 
+      - name: APK wiring check
+        run: node scripts/apk-wiring-check.mjs
+
       - name: JavaScript syntax checks
         run: |
           node --check scripts/production-smoke-test.mjs
+          node --check scripts/apk-wiring-check.mjs
           node --check frontend/js/apk-build.js
           node --check frontend/js/payment-client.js
           node --check frontend/js/payment-verification.js
