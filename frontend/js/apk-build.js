@@ -3,7 +3,7 @@ import { entitlementState } from './entitlement.js';
 
 const params=new URLSearchParams(location.search);
 const projectId=params.get('projectId');
-const BUILD_FUNCTION='start-apk-build-v3';
+const BUILD_FUNCTION='start-apk-build-v4';
 const $=id=>document.getElementById(id);
 const status=text=>{const el=$('projectStatus');if(el)el.textContent=text};
 const esc=v=>String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
