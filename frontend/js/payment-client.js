@@ -1,6 +1,6 @@
 import { supabase } from './auth/supabase-config.js';
 
-const FUNCTION_SLUG = 'create-payment-order';
+const FUNCTION_SLUG = 'create-payment-order-v2';
 
 export async function createPaymentOrder({ projectId, plan }) {
   if (!projectId || !plan) throw new Error('projectId and plan are required');
@@ -9,6 +9,7 @@ export async function createPaymentOrder({ projectId, plan }) {
   });
   if (error) throw new Error(error.message || 'Could not create payment order');
   if (!data?.order_id) throw new Error(data?.error || 'Payment order was not created');
+  if (data.mode !== 'test' && data.mode !== 'live') throw new Error('Payment environment is not configured correctly');
   return data;
 }
 
