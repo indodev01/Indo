@@ -75,6 +75,13 @@ form.addEventListener('submit', async (event) => {
     definition.settings.projectType = projectType;
     definition.settings.projectLabel = projectType === 'website' ? 'Website' : 'App';
     definition.navigation = definition.navigation || { items: [{ label: 'Home', pageId: 'home' }] };
+    definition.entitlement = {
+      plan: 'trial',
+      status: 'not_started',
+      trialStartedAt: null,
+      trialExpiresAt: null,
+      activatedAt: null
+    };
     if (projectType === 'website') {
       definition.settings.website = { responsive: true, seo: true, pagesEnabled: true };
     } else {
