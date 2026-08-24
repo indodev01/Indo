@@ -1,8 +1,8 @@
-# Indo Dev
+# IndoDev
 
 **Build. Preview. Get Your App.**
 
-Indo Dev is a no-code app builder platform designed to let users create apps without writing code.
+IndoDev is a no-code app builder platform designed to let users create apps without writing code.
 
 ## MVP Flow
 
@@ -44,7 +44,7 @@ docs/
 
 ## Product Principle
 
-The generated apps are white-label: Indo Dev branding should not appear in the user's app unless the user explicitly adds it.
+The generated apps are white-label: IndoDev branding should not appear in the user's app unless the user explicitly adds it.
 
 ## Status
 
