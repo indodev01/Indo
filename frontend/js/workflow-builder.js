@@ -9,6 +9,30 @@ const uid=(p='workflow')=>`${p}-${Date.now()}-${Math.random().toString(36).slice
 const esc=value=>String(value??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 const defaultWorkflow=()=>({id:uid(),name:'New Workflow',enabled:true,trigger:{type:'click',componentId:''},conditions:[],actions:[{id:uid('action'),type:'navigate',pageId:'home'}]});
 const normalizeAction=a=>({...a,id:a?.id||uid('action'),type:a?.type||'show-message'});
+function componentTargets(){
+  const pages=state.project?.app_definition?.pages||{};const out=[];
+  Object.entries(pages).forEach(([pageId,page])=>{
+    (Array.isArray(page?.components)?page.components:[]).forEach((component,index)=>{
+      const id=component?.id||component?.componentId;if(!id)return;
+      const label=component?.props?.title||component?.props?.label||component?.type||`Component ${index+1}`;
+      out.push({id,label:String(label),type:component?.type||'Component',pageId});
+    });
+  });
+  return out;
+}
+function renderTriggerTarget(container,w){
+  container.replaceChildren();
+  if(!['click','submit'].includes(w.trigger?.type))return;
+  const label=document.createElement('label');label.textContent='Target component';
+  const select=document.createElement('select');
+  const targets=componentTargets();
+  const blank=document.createElement('option');blank.value='';blank.textContent='Any matching component';select.appendChild(blank);
+  targets.forEach(target=>{const option=document.createElement('option');option.value=target.id;option.textContent=`${target.label} · ${target.type} · ${target.pageId}`;option.selected=target.id===w.trigger?.componentId;select.appendChild(option)});
+  select.value=w.trigger?.componentId||'';
+  select.onchange=e=>{w.trigger={...(w.trigger||{}),componentId:e.target.value};window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
+  label.appendChild(select);container.appendChild(label);
+  if(targets.length===0){const hint=document.createElement('small');hint.textContent='No components with IDs are available in this project yet.';container.appendChild(hint)}
+}
 async function save(){
   if(!state.project)return false;
   const next={...(state.project.app_definition||{}),workflows:state.workflows};
@@ -34,38 +58,18 @@ function configInput(labelText,value,onInput,attrs=''){const label=document.crea
 function configSelect(labelText,value,options,onChange){const label=document.createElement('label');label.textContent=labelText;const select=document.createElement('select');options.forEach(([id,text])=>{const option=document.createElement('option');option.value=id;option.textContent=text;option.selected=id===value;select.appendChild(option)});select.onchange=e=>onChange(e.target.value);label.appendChild(select);return label}
 function renderActionConfig(container,action){
   container.replaceChildren();
-  if(action.type==='navigate'){
-    container.appendChild(configInput('Page ID / slug',action.pageId||'home',value=>{action.pageId=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'home'));
-    return;
-  }
-  if(action.type==='show-message'){
-    container.appendChild(configInput('Message',action.message||'Done',value=>{action.message=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'Message shown to the user'));
-    return;
-  }
-  if(action.type==='set-value'){
-    container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#field'));
-    container.appendChild(configInput('Value',action.value||'',value=>{action.value=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'{{form.name}}'));
-    return;
-  }
-  if(action.type==='show-hide'){
-    container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#panel'));
-    container.appendChild(configSelect('Visibility',action.visible===false?'hide':'show',[['show','Show'],['hide','Hide']],value=>{action.visible=value==='show';window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))}));
-    return;
-  }
-  if(action.type==='api-call'){
-    renderApiActionPanel(container,action,next=>{Object.assign(action,normalizeAction(next));window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))});
-    return;
-  }
-  if(action.type==='database-create'){
-    renderDatabasePanel(container,action);
-  }
+  if(action.type==='navigate'){container.appendChild(configInput('Page ID / slug',action.pageId||'home',value=>{action.pageId=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'home'));return}
+  if(action.type==='show-message'){container.appendChild(configInput('Message',action.message||'Done',value=>{action.message=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'Message shown to the user'));return}
+  if(action.type==='set-value'){container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#field'));container.appendChild(configInput('Value',action.value||'',value=>{action.value=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'{{form.name}}'));return}
+  if(action.type==='show-hide'){container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#panel'));container.appendChild(configSelect('Visibility',action.visible===false?'hide':'show',[['show','Show'],['hide','Hide']],value=>{action.visible=value==='show';window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))}));return}
+  if(action.type==='api-call'){renderApiActionPanel(container,action,next=>{Object.assign(action,normalizeAction(next));window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))});return}
+  if(action.type==='database-create')renderDatabasePanel(container,action);
 }
 function renderActionRow(actions,index){
   const action=normalizeAction(actions[index]);actions[index]=action;
   const wrap=document.createElement('div');wrap.className='workflow-action';
   wrap.innerHTML=`<div class="workflow-action-head"><strong>Action ${index+1}</strong><div><button class="secondary move-up" type="button">↑</button><button class="secondary move-down" type="button">↓</button><button class="danger action-delete" type="button">×</button></div></div><div class="workflow-row"><strong>DO</strong><select class="action-select">${ACTIONS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select></div><div class="action-config"></div>`;
-  const select=wrap.querySelector('.action-select'),box=wrap.querySelector('.action-config');select.value=action.type;
-  const draw=()=>renderActionConfig(box,action);
+  const select=wrap.querySelector('.action-select'),box=wrap.querySelector('.action-config');select.value=action.type;const draw=()=>renderActionConfig(box,action);
   select.onchange=()=>{actions[index]={...normalizeAction(actions[index]),type:select.value};if(select.value==='api-call')actions[index].config={method:'GET',url:'',headers:{},body:null};draw();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   wrap.querySelector('.move-up').onclick=()=>{if(index<=0)return;[actions[index-1],actions[index]]=[actions[index],actions[index-1]];renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   wrap.querySelector('.move-down').onclick=()=>{if(index>=actions.length-1)return;[actions[index+1],actions[index]]=[actions[index],actions[index+1]];renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
@@ -76,14 +80,13 @@ function renderCurrent(){
   const list=$('workflowList');if(!list)return;list.innerHTML='';
   state.workflows.forEach((w,i)=>{
     const card=document.createElement('article');card.className='workflow-card';
-    card.innerHTML=`<div class="workflow-head"><input class="workflow-name" value="${esc(w.name)}"><label><input type="checkbox" class="workflow-enabled" ${w.enabled?'checked':''}> Enabled</label></div><div class="workflow-row"><strong>WHEN</strong><select class="trigger-select">${TRIGGERS.map(t=>`<option value="${t.id}" ${w.trigger?.type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><div class="workflow-conditions"></div><div class="actions-list"></div><button class="secondary add-action" type="button">+ Add Action</button><div class="workflow-actions"><button class="secondary save-workflow" type="button">Save</button><button class="danger delete-workflow" type="button">Delete</button></div>`;
-    const actions=Array.isArray(w.actions)?w.actions:(w.actions=[]);renderConditions(card.querySelector('.workflow-conditions'),w);const actionsList=card.querySelector('.actions-list');actions.forEach((_,idx)=>actionsList.appendChild(renderActionRow(actions,idx)));
+    card.innerHTML=`<div class="workflow-head"><input class="workflow-name" value="${esc(w.name)}"><label><input type="checkbox" class="workflow-enabled" ${w.enabled?'checked':''}> Enabled</label></div><div class="workflow-row"><strong>WHEN</strong><select class="trigger-select">${TRIGGERS.map(t=>`<option value="${t.id}" ${w.trigger?.type===t.id?'selected':''}>${t.label}</option>`).join('')}</select></div><div class="trigger-target"></div><div class="workflow-conditions"></div><div class="actions-list"></div><button class="secondary add-action" type="button">+ Add Action</button><div class="workflow-actions"><button class="secondary save-workflow" type="button">Save</button><button class="danger delete-workflow" type="button">Delete</button></div>`;
+    const actions=Array.isArray(w.actions)?w.actions:(w.actions=[]);const target=card.querySelector('.trigger-target');renderTriggerTarget(target,w);renderConditions(card.querySelector('.workflow-conditions'),w);const actionsList=card.querySelector('.actions-list');actions.forEach((_,idx)=>actionsList.appendChild(renderActionRow(actions,idx)));
     card.querySelector('.add-action').onclick=()=>{actions.push(normalizeAction({type:'show-message',message:'Done'}));renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
     card.querySelector('.workflow-name').oninput=e=>{w.name=e.target.value||'Untitled Workflow';window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
     card.querySelector('.workflow-enabled').onchange=e=>{w.enabled=e.target.checked;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
-    card.querySelector('.trigger-select').onchange=e=>{w.trigger={...(w.trigger||{}),type:e.target.value};window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
-    card.querySelector('.save-workflow').onclick=()=>save();card.querySelector('.delete-workflow').onclick=async()=>{state.workflows.splice(i,1);renderCurrent();await save()};
-    list.appendChild(card);
+    card.querySelector('.trigger-select').onchange=e=>{w.trigger={...(w.trigger||{}),type:e.target.value,componentId:e.target.value==='page-load'?'':(w.trigger?.componentId||'')};renderTriggerTarget(target,w);window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
+    card.querySelector('.save-workflow').onclick=()=>save();card.querySelector('.delete-workflow').onclick=async()=>{state.workflows.splice(i,1);renderCurrent();await save()};list.appendChild(card);
   });
 }
 async function init(){
