@@ -1,0 +1,14 @@
+.git/
+.github/
+android-wrapper/.gradle/
+android-wrapper/build/
+android-wrapper/app/build/
+node_modules/
+
+# Generated or externally-managed assets
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
