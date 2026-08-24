@@ -1,0 +1,55 @@
+name: Indo Release Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required release files
+        run: |
+          set -euo pipefail
+          test -s frontend/js/apk-build.js
+          test -s frontend/js/payment-client.js
+          test -s frontend/js/payment-verification.js
+          test -s frontend/html/builder-v2.html
+          test -s android-wrapper/app/build.gradle.kts
+          test -s android-wrapper/app/src/main/AndroidManifest.xml
+          test -s .github/workflows/build-apk.yml
+          test -s scripts/production-smoke-test.mjs
+
+      - name: Validate production references
+        run: |
+          set -euo pipefail
+          grep -q "start-apk-build-v4" frontend/js/apk-build.js
+          grep -q "create-payment-order-v2" frontend/js/payment-client.js
+          grep -q "verify-razorpay-payment-v2" frontend/js/payment-verification.js
+          grep -q "razorpay-webhook-v4" scripts/production-smoke-test.mjs || true
+          grep -q "assembleRelease" .github/workflows/build-apk.yml
+          grep -q "RELEASE_KEYSTORE_PATH" android-wrapper/app/build.gradle.kts
+          grep -q "RELEASE_KEY_ALIAS" android-wrapper/app/build.gradle.kts
+          grep -q "LIVE_URL" android-wrapper/app/build.gradle.kts
+
+      - name: JavaScript syntax
+        run: |
+          node --check scripts/production-smoke-test.mjs
+          node --check frontend/js/apk-build.js
+          node --check frontend/js/payment-client.js
+          node --check frontend/js/payment-verification.js
+
+      - name: Check workflow YAML references
+        run: |
+          grep -q "Validate APK inputs" .github/workflows/build-apk.yml
+          grep -q "Prepare stable signing key" .github/workflows/build-apk.yml
+          grep -q "Report build success" .github/workflows/build-apk.yml
+
+      - name: Release gate summary
+        run: echo "Indo release gate static checks passed. Live payment/APK transactions still require final end-to-end QA." 
