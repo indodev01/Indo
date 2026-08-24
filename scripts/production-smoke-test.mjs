@@ -26,9 +26,9 @@ await check('Activation request module', `${baseUrl}/frontend/js/activation-requ
 await check('APK build module', `${baseUrl}/frontend/js/apk-build.js`, (r, body) => r.ok && body.includes('start-apk-build-v4') && body.includes('icon_url') && body.includes('splash_url'));
 await check('APK function reachable', `${baseUrl}/frontend/js/apk-build.js`, (r, body) => r.ok && body.includes("const BUILD_FUNCTION='start-apk-build-v4'"));
 await check('Payment order client uses v2', `${baseUrl}/frontend/js/payment-client.js`, (r, body) => r.ok && body.includes("create-payment-order-v2"));
-await check('Payment verification client uses v2', `${baseUrl}/frontend/js/payment-verification.js`, (r, body) => r.ok && body.includes("verify-razorpay-payment-v2"));
-await check('Razorpay checkout preflight', `${baseUrl}/frontend/js/razorpay-checkout.js`, (r, body) => r.ok && body.includes('payment-config-health'));
-await check('Razorpay webhook v4 reference', `${baseUrl}/frontend/js/payment-client.js`, (r, body) => r.ok && !body.includes('razorpay-webhook-v2'));
+await check('Payment verification client uses v3', `${baseUrl}/frontend/js/payment-verification.js`, (r, body) => r.ok && body.includes("verify-razorpay-payment-v3"));
+await check('Razorpay checkout module', `${baseUrl}/frontend/js/razorpay-checkout.js`, (r, body) => r.ok && body.includes('verifyRazorpayPayment'));
+await check('Activation payment module uses verification client', `${baseUrl}/frontend/js/activation-payment.js`, (r, body) => r.ok && body.includes('verifyRazorpayPayment'));
 
 const healthBase = process.env.SUPABASE_URL;
 if (healthBase) {
