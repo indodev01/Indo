@@ -1,4 +1,5 @@
 import { supabase } from '../auth/supabase-config.js';
+import { entitlementState } from './entitlement.js';
 import { showPublishResult } from './publish-result-ui.js';
 
 const publishButton=document.getElementById('publishButton');
@@ -23,17 +24,18 @@ async function uniqueSlug(baseSlug){
 
 async function publishProject(){
   if(!projectId||!publishButton)return;
-  publishButton.disabled=true;setStatus('Saving changes...');
+  publishButton.disabled=true;setStatus('Checking entitlement...');
   try{
     const before=await supabase.from('projects').select('updated_at,name,app_definition').eq('id',projectId).maybeSingle();
     if(before.error)throw before.error;
-    const beforeUpdated=before.data?.updated_at||'';
-
-    // Await the builder's real async save so Publish cannot race ahead of Save.
+    if(!before.data)throw new Error('Project not found');
+    const access=entitlementState(before.data.app_definition?.entitlement);
+    if(!access.canUse)throw new Error('Your 24-hour trial has expired. Activate the app to publish again.');
+    setStatus('Saving changes...');
+    const beforeUpdated=before.data.updated_at||'';
     const builderSave=window.__indoBuilderState?.save;
-    if(typeof builderSave==='function'){
-      await builderSave();
-    }else{
+    if(typeof builderSave==='function')await builderSave();
+    else{
       saveButton?.click();
       let saved=false;
       for(let i=0;i<12&&!saved;i+=1){
@@ -44,9 +46,10 @@ async function publishProject(){
       }
       if(!saved)throw new Error('Could not confirm the latest changes were saved. Please click Save and try Publish again.');
     }
-
     const latest=await supabase.from('projects').select('name,app_definition').eq('id',projectId).maybeSingle();
     if(latest.error||!latest.data)throw latest.error||new Error('Project not found');
+    const latestAccess=entitlementState(latest.data.app_definition?.entitlement);
+    if(!latestAccess.canUse)throw new Error('Your 24-hour trial has expired. Activate the app to publish again.');
     setStatus('Checking live URL...');
     const requested=latest.data.app_definition?.publishing?.slug||latest.data.name;
     const existing=latest.data.app_definition?.publishing?.slug;
