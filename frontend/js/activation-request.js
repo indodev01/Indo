@@ -4,7 +4,9 @@ import { entitlementState } from './entitlement.js';
 const projectId = new URLSearchParams(location.search).get('projectId');
 const actions = document.querySelector('.topbar-actions');
 
-if (!projectId || !actions) return;
+if (!projectId || !actions) throw new Error('Activation UI requires a project.');
+
+let refreshTimer = null;
 
 async function loadProject() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -13,6 +15,20 @@ async function loadProject() {
     .select('id,user_id,name,app_definition')
     .eq('id', projectId)
     .eq('user_id', user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function loadRequest() {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return null;
+  const { data, error } = await supabase.from('activation_requests')
+    .select('id,status,requested_plan,created_at,reviewed_at')
+    .eq('project_id', projectId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -30,16 +46,46 @@ function ensureButton() {
   return button;
 }
 
+function setButtonState(button, entitlement, request) {
+  if (entitlement.status === 'activated') {
+    button.hidden = true;
+    return;
+  }
+
+  button.hidden = false;
+  button.disabled = false;
+
+  if (request?.status === 'pending') {
+    button.textContent = 'Activation Pending';
+    button.title = 'Activation request is waiting for payment verification.';
+    button.className = 'secondary';
+    return;
+  }
+
+  if (request?.status === 'approved') {
+    button.textContent = 'Activation Approved';
+    button.title = 'Activation approved. Final entitlement activation is pending.';
+    button.className = 'secondary';
+    return;
+  }
+
+  if (request?.status === 'rejected') {
+    button.textContent = 'Request Again';
+    button.title = 'Previous activation request was rejected.';
+    return;
+  }
+
+  button.textContent = entitlement.status === 'expired' ? 'Request Activation' : 'Activate';
+  button.title = entitlement.status === 'expired' ? 'Request paid activation for this app' : 'Request paid activation';
+}
+
 async function refresh() {
   try {
-    const project = await loadProject();
+    const [project, request] = await Promise.all([loadProject(), loadRequest()]);
     if (!project) return;
     const state = entitlementState(project.app_definition?.entitlement);
     const button = ensureButton();
-    button.hidden = state.status === 'activated';
-    button.disabled = false;
-    button.textContent = state.status === 'expired' ? 'Request Activation' : 'Activate';
-    button.title = state.status === 'expired' ? 'Request paid activation for this app' : 'Request paid activation';
+    setButtonState(button, state, request);
     button.onclick = () => requestActivation(button);
   } catch (error) {
     console.error(error);
@@ -66,7 +112,7 @@ async function requestActivation(button) {
       .maybeSingle();
     if (lookupError) throw lookupError;
     if (existing?.id) {
-      window.alert(existing.status === 'approved' ? 'This app already has an approved activation.' : 'Activation request is already pending.');
+      button.textContent = existing.status === 'approved' ? 'Activation Approved' : 'Activation Pending';
       return;
     }
 
@@ -77,7 +123,6 @@ async function requestActivation(button) {
       status: 'pending'
     });
     if (error) throw error;
-    window.alert('Activation request submitted. Payment verification can be connected to this request.');
     button.textContent = 'Activation Pending';
   } catch (error) {
     console.error(error);
@@ -86,7 +131,10 @@ async function requestActivation(button) {
   } finally {
     button.disabled = false;
     button.dataset.busy = '0';
+    await refresh();
   }
 }
 
 refresh();
+refreshTimer = window.setInterval(refresh, 10000);
+window.addEventListener('pagehide', () => { if (refreshTimer) window.clearInterval(refreshTimer); });
