@@ -1,11 +1,13 @@
 import { supabase } from './auth/supabase-config.js';
 import { entitlementState } from './entitlement.js';
+import { startActivationPayment } from './activation-payment.js';
 
 const projectId = new URLSearchParams(location.search).get('projectId');
 const actions = document.querySelector('.topbar-actions');
 if (!projectId || !actions) throw new Error('Activation UI requires a project.');
 
 let refreshTimer = null;
+let paymentBusy = false;
 
 async function loadProject() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -27,20 +29,38 @@ function ensureButton() {
   let button = document.getElementById('activateButton');
   if (button) return button;
   button = document.createElement('button');
-  button.id = 'activateButton'; button.type = 'button'; button.className = 'secondary'; button.textContent = 'Activate';
+  button.id = 'activateButton';
+  button.type = 'button';
+  button.className = 'secondary';
+  button.textContent = 'Activate';
   actions.insertBefore(button, actions.firstChild);
   return button;
 }
 
 function setButtonState(button, entitlement, request) {
+  if (paymentBusy) return;
   if (entitlement.status === 'activated') { button.hidden = true; return; }
-  button.hidden = false; button.disabled = false;
-  if (request?.status === 'pending') { button.textContent = 'Activation Pending'; button.title = 'Activation request is waiting for payment verification.'; return; }
-  if (request?.status === 'approved') { button.textContent = 'Activating…'; button.title = 'Finalizing approved activation.'; button.disabled = true; return; }
+  button.hidden = false;
+  button.disabled = false;
+  if (request?.status === 'pending') {
+    button.textContent = 'Pay & Activate';
+    button.title = 'Open secure Razorpay checkout to activate this app.';
+    return;
+  }
+  if (request?.status === 'approved') {
+    button.textContent = 'Activating…';
+    button.title = 'Finalizing approved activation.';
+    button.disabled = true;
+    return;
+  }
   if (request?.status === 'activated') { button.hidden = true; return; }
-  if (request?.status === 'rejected') { button.textContent = 'Request Again'; button.title = 'Previous activation request was rejected.'; return; }
-  button.textContent = entitlement.status === 'expired' ? 'Request Activation' : 'Activate';
-  button.title = entitlement.status === 'expired' ? 'Request paid activation for this app' : 'Request paid activation';
+  if (request?.status === 'rejected') {
+    button.textContent = 'Request Again';
+    button.title = 'Previous activation request was rejected.';
+    return;
+  }
+  button.textContent = entitlement.status === 'expired' ? 'Activate Now' : 'Activate';
+  button.title = 'Start paid activation with Razorpay';
 }
 
 async function finalizeApprovedActivation() {
@@ -66,24 +86,70 @@ async function refresh() {
       if (activatedProject) setButtonState(button, entitlementState(activatedProject.app_definition?.entitlement), { status: 'activated' });
       return;
     }
-    button.onclick = () => requestActivation(button);
-  } catch (error) { console.error(error); }
+    button.onclick = () => startPayment(button);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
-async function requestActivation(button) {
-  if (button.dataset.busy === '1') return;
-  button.dataset.busy = '1'; button.disabled = true; const original = button.textContent; button.textContent = 'Requesting…';
+async function ensurePendingRequest(plan = 'paid') {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) throw authError || new Error('Please sign in again.');
+  const { data: existing, error: lookupError } = await supabase.from('activation_requests').select('id,status').eq('project_id', projectId).eq('user_id', user.id).in('status', ['pending','approved','activated']).order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing?.id) return existing;
+  const { data, error } = await supabase.from('activation_requests').insert({ project_id: projectId, user_id: user.id, requested_plan: plan, status: 'pending' }).select('id,status').single();
+  if (error) throw error;
+  return data;
+}
+
+async function startPayment(button) {
+  if (paymentBusy) return;
+  paymentBusy = true;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Opening Checkout…';
   try {
+    const project = await loadProject();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) throw authError || new Error('Please sign in again.');
-    const { data: existing, error: lookupError } = await supabase.from('activation_requests').select('id,status').eq('project_id', projectId).eq('user_id', user.id).in('status', ['pending','approved','activated']).order('created_at', { ascending: false }).limit(1).maybeSingle();
-    if (lookupError) throw lookupError;
-    if (existing?.id) { button.textContent = existing.status === 'approved' ? 'Activating…' : existing.status === 'activated' ? 'Activated' : 'Activation Pending'; return; }
-    const { error } = await supabase.from('activation_requests').insert({ project_id: projectId, user_id: user.id, requested_plan: 'paid', status: 'pending' });
-    if (error) throw error;
-    button.textContent = 'Activation Pending';
-  } catch (error) { console.error(error); window.alert(error.message || 'Could not submit activation request.'); button.textContent = original; }
-  finally { button.disabled = false; button.dataset.busy = '0'; await refresh(); }
+    if (!project) throw new Error('Project not found.');
+
+    const request = await ensurePendingRequest('paid');
+    if (request?.status === 'activated') {
+      await refresh();
+      return;
+    }
+    const metadata = user.user_metadata || {};
+    await startActivationPayment({
+      projectId,
+      plan: 'paid',
+      name: metadata.full_name || metadata.name || '',
+      email: user.email || '',
+      phone: metadata.phone || '',
+      onSuccess: async () => {
+        paymentBusy = false;
+        button.disabled = false;
+        button.textContent = 'Activated';
+        await refresh();
+      },
+      onFailure: async (error) => {
+        paymentBusy = false;
+        button.disabled = false;
+        button.textContent = original;
+        console.error(error);
+        window.alert(error?.message || 'Payment was not completed.');
+        await refresh();
+      }
+    });
+  } catch (error) {
+    paymentBusy = false;
+    button.disabled = false;
+    button.textContent = original;
+    console.error(error);
+    window.alert(error?.message || 'Could not start payment.');
+    await refresh();
+  }
 }
 
 refresh();
