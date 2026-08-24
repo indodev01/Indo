@@ -1,0 +1,47 @@
+name: Indo Static Wiring Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  wiring-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check required payment/APK references
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const checks = [
+            ['frontend/js/apk-build.js', 'start-apk-build-v4'],
+            ['frontend/js/payment-client.js', 'create-payment-order-v2'],
+            ['frontend/js/payment-verification.js', 'verify-razorpay-payment-v2'],
+            ['frontend/html/builder-v2.html', 'apk-build.js?v=7'],
+            ['scripts/production-smoke-test.mjs', 'start-apk-build-v4'],
+          ];
+          for (const [file, needle] of checks) {
+            const text = fs.readFileSync(file, 'utf8');
+            if (!text.includes(needle)) {
+              console.error(`FAIL: ${file} missing ${needle}`);
+              process.exit(1);
+            }
+            console.log(`PASS: ${file} -> ${needle}`);
+          }
+          NODE
+
+      - name: JavaScript syntax checks
+        run: |
+          node --check scripts/production-smoke-test.mjs
+          node --check frontend/js/apk-build.js
+          node --check frontend/js/payment-client.js
+          node --check frontend/js/payment-verification.js
