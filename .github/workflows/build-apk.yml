@@ -46,12 +46,20 @@ jobs:
         working-directory: android-wrapper
     env:
       GRADLE_OPTS: '-Dorg.gradle.parallel=true -Dorg.gradle.caching=true -Dorg.gradle.daemon=false'
+      BUILD_CALLBACK_URL: 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback'
+      BUILD_CALLBACK_SECRET: ${{ secrets.INDO_BUILD_CALLBACK_SECRET }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Validate callback security
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$BUILD_CALLBACK_SECRET"
 
       - name: Validate APK inputs
         shell: bash
@@ -70,8 +78,9 @@ jobs:
 
       - name: Notify build started
         run: |
-          curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
+          curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
+            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"building"}'
 
       - name: Set up Java
@@ -140,8 +149,9 @@ jobs:
       - name: Report build failure
         if: steps.apk.outcome == 'failure'
         run: |
-          curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
+          curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
+            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"Signed release APK build failed. Check the latest GitHub Actions run for logs."}'
           exit 1
 
@@ -176,8 +186,9 @@ jobs:
       - name: Report release failure
         if: steps.release.outcome == 'failure'
         run: |
-          curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
+          curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
+            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
             --data-binary '{"build_token":"${{ inputs.build_token }}","status":"failed","error":"APK built successfully, but publishing the direct download failed. Check the GitHub Actions run logs."}'
           exit 1
 
@@ -186,6 +197,7 @@ jobs:
         env:
           DIRECT_APK_URL: https://github.com/${{ github.repository }}/releases/download/indo-apk-${{ inputs.build_token }}/indo-app-v${{ inputs.version_name }}.apk
         run: |
-          curl -fsS -X POST 'https://lpcfgrphadnppqxpwxjv.supabase.co/functions/v1/build-callback' \
+          curl -fsS -X POST "$BUILD_CALLBACK_URL" \
             -H 'content-type: application/json' \
+            -H "x-indo-build-callback-secret: $BUILD_CALLBACK_SECRET" \
             --data-binary "{\"build_token\":\"${{ inputs.build_token }}\",\"status\":\"success\",\"artifact_url\":\"${DIRECT_APK_URL}\"}"
