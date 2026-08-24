@@ -30,19 +30,48 @@ function renderDatabasePanel(container,action){
   function drawFields(){fields.innerHTML='';const opt=table.selectedOptions[0];let cols=[];try{cols=JSON.parse(opt?.dataset.columns||'[]')}catch{};if(!cols.length){fields.innerHTML='<small>Choose a table with defined columns.</small>';return}const mapping=action.data||{};cols.forEach(col=>{const name=typeof col==='string'?col:(col.name||col.key||'field');const row=document.createElement('label');row.textContent=name;const input=document.createElement('input');input.value=mapping[name]||`{{form.${name}}}`;input.dataset.field=name;row.appendChild(input);fields.appendChild(row)})}
   table.onchange=drawFields;container.querySelector('.db-save').onclick=()=>{if(!table.value){status.textContent='Choose a table';return}const data={};fields.querySelectorAll('input[data-field]').forEach(i=>data[i.dataset.field]=i.value);action.tableId=table.value;action.data=data;status.textContent='Mapping changed — click Save';window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
 }
+function configInput(labelText,value,onInput,attrs=''){const label=document.createElement('label');label.textContent=labelText;const input=document.createElement('input');input.value=value??'';if(attrs)input.setAttribute('placeholder',attrs);input.oninput=e=>onInput(e.target.value);label.appendChild(input);return label}
+function configSelect(labelText,value,options,onChange){const label=document.createElement('label');label.textContent=labelText;const select=document.createElement('select');options.forEach(([id,text])=>{const option=document.createElement('option');option.value=id;option.textContent=text;option.selected=id===value;select.appendChild(option)});select.onchange=e=>onChange(e.target.value);label.appendChild(select);return label}
+function renderActionConfig(container,action){
+  container.replaceChildren();
+  if(action.type==='navigate'){
+    container.appendChild(configInput('Page ID / slug',action.pageId||'home',value=>{action.pageId=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'home'));
+    return;
+  }
+  if(action.type==='show-message'){
+    container.appendChild(configInput('Message',action.message||'Done',value=>{action.message=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'Message shown to the user'));
+    return;
+  }
+  if(action.type==='set-value'){
+    container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#field'));
+    container.appendChild(configInput('Value',action.value||'',value=>{action.value=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'{{form.name}}'));
+    return;
+  }
+  if(action.type==='show-hide'){
+    container.appendChild(configInput('CSS selector',action.selector||'',value=>{action.selector=value;window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))},'#panel'));
+    container.appendChild(configSelect('Visibility',action.visible===false?'hide':'show',[['show','Show'],['hide','Hide']],value=>{action.visible=value==='show';window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))}));
+    return;
+  }
+  if(action.type==='api-call'){
+    renderApiActionPanel(container,action,next=>{Object.assign(action,normalizeAction(next));window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))});
+    return;
+  }
+  if(action.type==='database-create'){
+    renderDatabasePanel(container,action);
+  }
+}
 function renderActionRow(actions,index){
   const action=normalizeAction(actions[index]);actions[index]=action;
   const wrap=document.createElement('div');wrap.className='workflow-action';
   wrap.innerHTML=`<div class="workflow-action-head"><strong>Action ${index+1}</strong><div><button class="secondary move-up" type="button">↑</button><button class="secondary move-down" type="button">↓</button><button class="danger action-delete" type="button">×</button></div></div><div class="workflow-row"><strong>DO</strong><select class="action-select">${ACTIONS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('')}</select></div><div class="action-config"></div>`;
   const select=wrap.querySelector('.action-select'),box=wrap.querySelector('.action-config');select.value=action.type;
-  const draw=()=>{box.replaceChildren();if(select.value==='api-call')renderApiActionPanel(box,action,next=>{actions[index]=normalizeAction(next);window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))});else if(select.value==='database-create')renderDatabasePanel(box,action)};
+  const draw=()=>renderActionConfig(box,action);
   select.onchange=()=>{actions[index]={...normalizeAction(actions[index]),type:select.value};if(select.value==='api-call')actions[index].config={method:'GET',url:'',headers:{},body:null};draw();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   wrap.querySelector('.move-up').onclick=()=>{if(index<=0)return;[actions[index-1],actions[index]]=[actions[index],actions[index-1]];renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   wrap.querySelector('.move-down').onclick=()=>{if(index>=actions.length-1)return;[actions[index+1],actions[index]]=[actions[index],actions[index+1]];renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   wrap.querySelector('.action-delete').onclick=()=>{actions.splice(index,1);if(!actions.length)actions.push(normalizeAction({type:'show-message',message:'Done'}));renderCurrent();window.dispatchEvent(new CustomEvent('indo:workflow-dirty'))};
   draw();return wrap;
 }
-let activeWorkflowIndex=-1;
 function renderCurrent(){
   const list=$('workflowList');if(!list)return;list.innerHTML='';
   state.workflows.forEach((w,i)=>{
