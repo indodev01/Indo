@@ -53,10 +53,19 @@ export function makeEmptyDefinition() {
   };
 }
 
-export function normalizeComponent(component, index = 0) {
+function slug(value) {
+  return String(value || 'component')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'component';
+}
+
+export function normalizeComponent(component, index = 0, pageId = 'home') {
   if (typeof component === 'string') {
     return {
-      id: `${component.toLowerCase()}-${index + 1}-${Date.now()}`,
+      id: `${slug(pageId)}-${slug(component)}-${index + 1}`,
       type: component,
       props: {}
     };
@@ -70,15 +79,15 @@ export function normalizeComponent(component, index = 0) {
 
   return {
     ...component,
-    id: component.id || `component-${index + 1}-${Date.now()}`,
+    id: component.id || `${slug(pageId)}-${slug(component.type || 'text')}-${index + 1}`,
     type: component.type || 'Text',
     props
   };
 }
 
-export function normalizeComponents(values) {
+export function normalizeComponents(values, pageId = 'home') {
   return Array.isArray(values)
-    ? values.map((item, index) => normalizeComponent(item, index)).filter(Boolean)
+    ? values.map((item, index) => normalizeComponent(item, index, pageId)).filter(Boolean)
     : [];
 }
 
@@ -103,11 +112,11 @@ export function normalizeDefinition(project) {
         ...page,
         id,
         slug: page?.slug || id,
-        components: normalizeComponents(page?.components || [])
+        components: normalizeComponents(page?.components || [], id)
       };
     });
   } else {
-    base.pages.home.components = normalizeComponents(raw.componentsList || []);
+    base.pages.home.components = normalizeComponents(raw.componentsList || [], 'home');
   }
 
   base.metadata = {
@@ -135,7 +144,7 @@ export function normalizeDefinition(project) {
 }
 
 export function syncLegacyFields(definition) {
-  const homeComponents = normalizeComponents(definition.pages?.home?.components || []);
+  const homeComponents = normalizeComponents(definition.pages?.home?.components || [], 'home');
   return {
     pages: definition.pages,
     appDefinition: {
